@@ -1,31 +1,137 @@
-libdrm (2.4.43-0ubuntu0.0.3) precise-security; urgency=low
+libdrm (2.4.58-2) unstable; urgency=medium
 
-  * No change rebuild in the security pocket
+  [ Andreas Boll ]
+  * Update libdrm-freedreno1.symbols and shlibs (fixes FTBFS).
 
- -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Wed, 16 Oct 2013 08:33:03 -0400
+ -- Julien Cristau <jcristau@debian.org>  Sun, 05 Oct 2014 19:00:32 +0200
 
-libdrm (2.4.43-0ubuntu0.0.2) precise-proposed; urgency=low
+libdrm (2.4.58-1) unstable; urgency=medium
 
-  * Added patches to add/fix Haswell pci-id's (LP: #1175533)
-    - fix-hsw-crw-ids.diff
-    - fix-hsw-gt3-names.diff
-    - add-more-reserved-hsw-ids.diff
+  [ Andreas Boll ]
+  * New upstream release.
+    - 03_hide_symbols.diff dropped, upstream.
+  * Update libdrm-intel1.symbols and shlibs.
 
- -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Wed, 19 Jun 2013 10:24:58 +0200
+ -- Julien Cristau <jcristau@debian.org>  Sun, 05 Oct 2014 15:53:13 +0200
 
-libdrm (2.4.43-0ubuntu0.0.1) precise-proposed; urgency=low
+libdrm (2.4.56-1) unstable; urgency=medium
 
-  * Copy package from raring, and re-enable libdrm-nouveau1a. (LP: #1171340)
+  * New upstream release.
+  * Enable building freedreno and exynos on arm. (Closes: #741509)
+  * Add a squashed patch from upstream to hide all private symbols.
+    - 03_hide_symbols.diff
 
- -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Mon, 22 Apr 2013 11:58:20 +0200
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Wed, 06 Aug 2014 12:15:26 +0200
 
-libdrm (2.4.43-0ubuntu1) raring; urgency=low
+libdrm (2.4.54-1) unstable; urgency=medium
 
-  * Sync from unreleased debian git.
+  [ Andreas Boll ]
+  * New upstream release.
+  * Add 02_fix_qxl_drm_h.diff (Closes: #746807).
 
- -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Wed, 27 Mar 2013 11:16:57 +0100
+ -- Julien Cristau <jcristau@debian.org>  Sat, 10 May 2014 15:38:16 +0200
 
-libdrm (2.4.43-1) UNRELEASED; urgency=low
+libdrm (2.4.53-1) unstable; urgency=medium
+
+  [ Timo Aaltonen ]
+  * New upstream release.
+    - 02_kbsd_modeset.diff dropped, upstream
+
+ -- Julien Cristau <jcristau@debian.org>  Sun, 27 Apr 2014 22:15:55 +0200
+
+libdrm (2.4.52-1) unstable; urgency=medium
+
+  [ Julien Cristau ]
+  * Remove Cyril Brulebois from Uploaders.
+
+  [ Maarten Lankhorst ]
+  * New upstream release.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Fri, 24 Jan 2014 13:41:57 +0100
+
+libdrm (2.4.51-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Julien Cristau <jcristau@debian.org>  Mon, 20 Jan 2014 13:45:50 +0100
+
+libdrm (2.4.50-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Thu, 19 Dec 2013 10:49:57 +0100
+
+libdrm (2.4.49-2) unstable; urgency=low
+
+  * Cherry-pick a commit from upstream to fix a radeonsi regression.
+    - c8a437f4c76: radeon: Update unaligned offset for 2D->1D tiling
+      transition on SI
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Tue, 26 Nov 2013 15:25:45 +0100
+
+libdrm (2.4.49-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Mon, 25 Nov 2013 11:36:32 +0100
+
+libdrm (2.4.46-4) unstable; urgency=low
+
+  [ Colin Watson ]
+  * Declare libdrm-dev Multi-Arch: same.
+
+  [ Maarten Lankhorst ]
+  * Cherry-pick upstream patch to fix relocations for all cards <nv50.
+  * Do not require valgrind on armel.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Thu, 07 Nov 2013 14:11:38 +0100
+
+libdrm (2.4.46-3) unstable; urgency=low
+
+  * Make drmCheckModesettingSupported work on FreeBSD.  Thanks, Christoph
+    Egger!
+  * Stop building libkms.
+
+ -- Julien Cristau <jcristau@debian.org>  Thu, 19 Sep 2013 21:24:52 +0200
+
+libdrm (2.4.46-2) unstable; urgency=low
+
+  * Build libdrm-radeon1 on kfreebsd (closes: #684593).
+
+ -- Julien Cristau <jcristau@debian.org>  Wed, 21 Aug 2013 21:05:44 +0200
+
+libdrm (2.4.46-1) unstable; urgency=low
+
+  [ Sven Joachim ]
+  * New upstream release.
+  * Bump libdrm2's and libdrm-intel1's symbols and shlibs.
+  * Build libdrm-intel1 on x32 (Closes: #712515).
+  * Disable silent rules.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Mon, 05 Aug 2013 13:44:46 +0200
+
+libdrm (2.4.45-3) unstable; urgency=low
+
+  * Team upload.
+
+  * debian/patches/03_build_against_librt.diff:
+    + Removed, no longer needed with our current glibc version.
+      Thanks to Julien Cristau for pointing it out.
+  * Upload to unstable.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 06 Jun 2013 23:13:12 +0200
+
+libdrm (2.4.45-2) experimental; urgency=low
+
+  [ Sven Joachim ]
+  * Only build-depend on valgrind on architectures where
+    valgrind is actually available.
+
+ -- Julien Cristau <jcristau@debian.org>  Thu, 30 May 2013 10:03:37 +0200
+
+libdrm (2.4.45-1) experimental; urgency=low
+
+  * Team upload.
 
   [ Julien Cristau ]
   * Bump libdrm2 shlibs to 2.4.38.
@@ -38,20 +144,10 @@ libdrm (2.4.43-1) UNRELEASED; urgency=low
   [ Timo Aaltonen ]
   * control: Bump policy to 3.9.4, no changes.
 
- -- Julien Cristau <jcristau@debian.org>  Tue, 25 Dec 2012 13:17:28 +0100
+  [ Emilio Pozuelo Monfort ]
+  * Upload to experimental.
 
-libdrm (2.4.42-0ubuntu2) raring; urgency=low
-
-  * Re-enable building of manpages, and build-depend on xsltproc
-  * Add valgrind to build-depends
-
- -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Thu, 14 Mar 2013 12:44:09 +0100
-
-libdrm (2.4.42-0ubuntu1) raring; urgency=low
-
-  * Sync from unreleased debian git.
-
- -- Timo Aaltonen <tjaalton@ubuntu.com>  Thu, 07 Feb 2013 10:52:58 +0200
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 16 May 2013 00:09:59 +0200
 
 libdrm (2.4.40-1) experimental; urgency=low
 

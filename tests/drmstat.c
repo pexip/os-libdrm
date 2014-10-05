@@ -28,7 +28,9 @@
  * 
  */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -425,7 +427,7 @@ int main(int argc, char **argv)
     return r; 
 }
 
-void
+void DRM_PRINTFLIKE(4, 0)
 xf86VDrvMsgVerb(int scrnIndex, int type, int verb, const char *format,
                 va_list args)
 {

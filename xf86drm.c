@@ -48,7 +48,6 @@
 #include <sys/stat.h>
 #define stat_t struct stat
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <sys/time.h>
 #include <stdarg.h>
 
@@ -58,6 +57,7 @@
 #endif
 
 #include "xf86drm.h"
+#include "libdrm.h"
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
 #define DRM_MAJOR 145
@@ -104,12 +104,16 @@ void drmSetServerInfo(drmServerInfoPtr info)
  * This function is a wrapper around vfprintf().
  */
 
-static int drmDebugPrint(const char *format, va_list ap)
+static int DRM_PRINTFLIKE(1, 0)
+drmDebugPrint(const char *format, va_list ap)
 {
     return vfprintf(stderr, format, ap);
 }
 
-static int (*drm_debug_print)(const char *format, va_list ap) = drmDebugPrint;
+typedef int DRM_PRINTFLIKE(1, 0) (*debug_msg_func_t)(const char *format,
+						     va_list ap);
+
+static debug_msg_func_t drm_debug_print = drmDebugPrint;
 
 void
 drmMsg(const char *format, ...)
@@ -129,7 +133,7 @@ drmMsg(const char *format, ...)
 }
 
 void
-drmSetDebugMsgFunction(int (*debug_msg_ptr)(const char *format, va_list ap))
+drmSetDebugMsgFunction(debug_msg_func_t debug_msg_ptr)
 {
     drm_debug_print = debug_msg_ptr;
 }
@@ -499,7 +503,7 @@ static int drmOpenByBusid(const char *busid)
 		sv.drm_di_minor = 1;
 		sv.drm_dd_major = -1;       /* Don't care */
 		sv.drm_dd_minor = -1;       /* Don't care */
-		drmMsg("drmOpenByBusid: Interface 1.4 failed, trying 1.1\n",fd);
+		drmMsg("drmOpenByBusid: Interface 1.4 failed, trying 1.1\n");
 		drmSetInterfaceVersion(fd, &sv);
 	    }
 	    buf = drmGetBusid(fd);
@@ -537,19 +541,6 @@ static int drmOpenByName(const char *name)
     int           fd;
     drmVersionPtr version;
     char *        id;
-    
-    if (!drmAvailable()) {
-	if (!drm_server_info) {
-	    return -1;
-	}
-	else {
-	    /* try to load the kernel module now */
-	    if (!drm_server_info->load_module(name)) {
-		drmMsg("[drm] failed to load kernel module \"%s\"\n", name);
-		return -1;
-	    }
-	}
-    }
 
     /*
      * Open the first minor number that matches the driver name and isn't
@@ -821,6 +812,13 @@ int drmGetCap(int fd, uint64_t capability, uint64_t *value)
 
 	*value = cap.value;
 	return 0;
+}
+
+int drmSetClientCap(int fd, uint64_t capability, uint64_t value)
+{
+	struct drm_set_client_cap cap  = { capability, value };
+
+	return drmIoctl(fd, DRM_IOCTL_SET_CLIENT_CAP, &cap);
 }
 
 /**
@@ -1139,7 +1137,7 @@ int drmMap(int fd, drm_handle_t handle, drmSize size, drmAddressPtr address)
 
     size = (size + pagesize_mask) & ~pagesize_mask;
 
-    *address = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, handle);
+    *address = drm_mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, handle);
     if (*address == MAP_FAILED)
 	return -errno;
     return 0;
@@ -1159,7 +1157,7 @@ int drmMap(int fd, drm_handle_t handle, drmSize size, drmAddressPtr address)
  */
 int drmUnmap(drmAddress address, drmSize size)
 {
-    return munmap(address, size);
+    return drm_munmap(address, size);
 }
 
 drmBufInfoPtr drmGetBufInfo(int fd)
@@ -1266,7 +1264,7 @@ int drmUnmapBufs(drmBufMapPtr bufs)
     int i;
 
     for (i = 0; i < bufs->count; i++) {
-	munmap(bufs->list[i].address, bufs->list[i].total);
+	drm_munmap(bufs->list[i].address, bufs->list[i].total);
     }
 
     drmFree(bufs->list);
@@ -1946,7 +1944,7 @@ int drmWaitVBlank(int fd, drmVBlankPtr vbl)
 
     ret = clock_gettime(CLOCK_MONOTONIC, &timeout);
     if (ret < 0) {
-	fprintf(stderr, "clock_gettime failed: %s\n", strerror(ret));
+	fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
 	goto out;
     }
     timeout.tv_sec++;

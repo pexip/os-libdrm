@@ -1,6 +1,1 @@
 01_default_perms.diff
-03_build_against_librt.diff
-04_libdrm-2.4.37-nouveau-1.diff
-fix-hsw-crw-ids.diff
-fix-hsw-gt3-names.diff
-add-more-reserved-hsw-ids.diff

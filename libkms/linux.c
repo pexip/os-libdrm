@@ -30,7 +30,9 @@
  */
 
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,21 +103,31 @@ linux_from_sysfs(int fd, struct kms_driver **out)
 	if (ret)
 		return ret;
 
+#ifdef HAVE_INTEL
 	if (!strcmp(name, "intel"))
 		ret = intel_create(fd, out);
+	else
+#endif
 #ifdef HAVE_VMWGFX
-	else if (!strcmp(name, "vmwgfx"))
+	if (!strcmp(name, "vmwgfx"))
 		ret = vmwgfx_create(fd, out);
+	else
 #endif
 #ifdef HAVE_NOUVEAU
-	else if (!strcmp(name, "nouveau"))
+	if (!strcmp(name, "nouveau"))
 		ret = nouveau_create(fd, out);
+	else
 #endif
 #ifdef HAVE_RADEON
-	else if (!strcmp(name, "radeon"))
+	if (!strcmp(name, "radeon"))
 		ret = radeon_create(fd, out);
-#endif
 	else
+#endif
+#ifdef HAVE_EXYNOS
+	if (!strcmp(name, "exynos"))
+		ret = exynos_create(fd, out);
+	else
+#endif
 		ret = -ENOSYS;
 
 	free(name);

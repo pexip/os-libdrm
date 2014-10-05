@@ -26,178 +26,316 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "freedreno_drmif.h"
 #include "freedreno_priv.h"
 
-#include <linux/fb.h>
+static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
 
+static void bo_del(struct fd_bo *bo);
+
+/* set buffer name, and add to table, call w/ table_lock held: */
+static void set_name(struct fd_bo *bo, uint32_t name)
+{
+	bo->name = name;
+	/* add ourself into the handle table: */
+	drmHashInsert(bo->dev->name_table, name, bo);
+}
+
+/* lookup a buffer, call w/ table_lock held: */
+static struct fd_bo * lookup_bo(void *tbl, uint32_t key)
+{
+	struct fd_bo *bo = NULL;
+	if (!drmHashLookup(tbl, key, (void **)&bo)) {
+		/* found, incr refcnt and return: */
+		bo = fd_bo_ref(bo);
+	}
+	return bo;
+}
+
+/* allocate a new buffer object, call w/ table_lock held */
 static struct fd_bo * bo_from_handle(struct fd_device *dev,
 		uint32_t size, uint32_t handle)
 {
-	unsigned i;
-	struct fd_bo *bo = calloc(1, sizeof(*bo));
-	if (!bo)
+	struct fd_bo *bo;
+
+	bo = dev->funcs->bo_from_handle(dev, size, handle);
+	if (!bo) {
+		struct drm_gem_close req = {
+				.handle = handle,
+		};
+		drmIoctl(dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 		return NULL;
-	bo->dev = dev;
+	}
+	bo->dev = fd_device_ref(dev);
 	bo->size = size;
 	bo->handle = handle;
 	atomic_set(&bo->refcnt, 1);
-	for (i = 0; i < ARRAY_SIZE(bo->list); i++)
-		list_inithead(&bo->list[i]);
+	list_inithead(&bo->list);
+	/* add ourself into the handle table: */
+	drmHashInsert(dev->handle_table, handle, bo);
 	return bo;
 }
 
-static int set_memtype(struct fd_bo *bo, uint32_t flags)
+/* Frees older cached buffers.  Called under table_lock */
+void fd_cleanup_bo_cache(struct fd_device *dev, time_t time)
 {
-	struct drm_kgsl_gem_memtype req = {
-			.handle = bo->handle,
-			.type = flags & DRM_FREEDRENO_GEM_TYPE_MEM_MASK,
-	};
+	int i;
 
-	return drmCommandWrite(bo->dev->fd, DRM_KGSL_GEM_SETMEMTYPE,
-			&req, sizeof(req));
-}
+	if (dev->time == time)
+		return;
 
-static int bo_alloc(struct fd_bo *bo)
-{
-	if (!bo->offset) {
-		struct drm_kgsl_gem_alloc req = {
-				.handle = bo->handle,
-		};
-		int ret;
+	for (i = 0; i < dev->num_buckets; i++) {
+		struct fd_bo_bucket *bucket = &dev->cache_bucket[i];
+		struct fd_bo *bo;
 
-		/* if the buffer is already backed by pages then this
-		 * doesn't actually do anything (other than giving us
-		 * the offset)
-		 */
-		ret = drmCommandWriteRead(bo->dev->fd, DRM_KGSL_GEM_ALLOC,
-				&req, sizeof(req));
-		if (ret) {
-			ERROR_MSG("alloc failed: %s", strerror(errno));
-			return ret;
+		while (!LIST_IS_EMPTY(&bucket->list)) {
+			bo = LIST_ENTRY(struct fd_bo, bucket->list.next, list);
+
+			/* keep things in cache for at least 1 second: */
+			if (time && ((time - bo->free_time) <= 1))
+				break;
+
+			list_del(&bo->list);
+			bo_del(bo);
 		}
-
-		bo->offset = req.offset;
 	}
-	return 0;
+
+	dev->time = time;
 }
 
-struct fd_bo * fd_bo_new(struct fd_device *dev,
-		uint32_t size, uint32_t flags)
+static struct fd_bo_bucket * get_bucket(struct fd_device *dev, uint32_t size)
 {
-	struct drm_kgsl_gem_create req = {
-			.size = ALIGN(size, 4096),
-	};
+	int i;
+
+	/* hmm, this is what intel does, but I suppose we could calculate our
+	 * way to the correct bucket size rather than looping..
+	 */
+	for (i = 0; i < dev->num_buckets; i++) {
+		struct fd_bo_bucket *bucket = &dev->cache_bucket[i];
+		if (bucket->size >= size) {
+			return bucket;
+		}
+	}
+
+	return NULL;
+}
+
+static int is_idle(struct fd_bo *bo)
+{
+	return fd_bo_cpu_prep(bo, NULL,
+			DRM_FREEDRENO_PREP_READ |
+			DRM_FREEDRENO_PREP_WRITE |
+			DRM_FREEDRENO_PREP_NOSYNC) == 0;
+}
+
+static struct fd_bo *find_in_bucket(struct fd_device *dev,
+		struct fd_bo_bucket *bucket, uint32_t flags)
+{
 	struct fd_bo *bo = NULL;
 
-	if (drmCommandWriteRead(dev->fd, DRM_KGSL_GEM_CREATE,
-			&req, sizeof(req))) {
-		return NULL;
-	}
-
-	bo = bo_from_handle(dev, size, req.handle);
-	if (!bo) {
-		goto fail;
-	}
-
-	if (set_memtype(bo, flags)) {
-		goto fail;
-	}
-
-	return bo;
-fail:
-	if (bo)
-		fd_bo_del(bo);
-	return NULL;
-}
-
-/* don't use this... it is just needed to get a bo from the
- * framebuffer (pre-dmabuf)
- */
-struct fd_bo * fd_bo_from_fbdev(struct fd_pipe *pipe,
-		int fbfd, uint32_t size)
-{
-	struct drm_kgsl_gem_create_fd req = {
-			.fd = fbfd,
-	};
-	struct fd_bo *bo;
-
-	if (drmCommandWriteRead(pipe->dev->fd, DRM_KGSL_GEM_CREATE_FD,
-			&req, sizeof(req))) {
-		return NULL;
-	}
-
-	bo = bo_from_handle(pipe->dev, size, req.handle);
-
-	/* this is fugly, but works around a bug in the kernel..
-	 * priv->memdesc.size never gets set, so getbufinfo ioctl
-	 * thinks the buffer hasn't be allocate and fails
+	/* TODO .. if we had an ALLOC_FOR_RENDER flag like intel, we could
+	 * skip the busy check.. if it is only going to be a render target
+	 * then we probably don't need to stall..
+	 *
+	 * NOTE that intel takes ALLOC_FOR_RENDER bo's from the list tail
+	 * (MRU, since likely to be in GPU cache), rather than head (LRU)..
 	 */
-	if (bo && !fd_bo_gpuaddr(bo, 0)) {
-		void *fbmem = mmap(NULL, size, PROT_READ | PROT_WRITE,
-				MAP_SHARED, fbfd, 0);
-		struct kgsl_map_user_mem req = {
-				.memtype = KGSL_USER_MEM_TYPE_ADDR,
-				.len     = size,
-				.offset  = 0,
-				.hostptr = (unsigned long)fbmem,
-		};
-		int ret;
-		ret = ioctl(pipe->fd, IOCTL_KGSL_MAP_USER_MEM, &req);
-		if (ret) {
-			ERROR_MSG("mapping user mem failed: %s",
-					strerror(errno));
-			goto fail;
+	pthread_mutex_lock(&table_lock);
+	while (!LIST_IS_EMPTY(&bucket->list)) {
+		bo = LIST_ENTRY(struct fd_bo, bucket->list.next, list);
+		if (0 /* TODO: if madvise tells us bo is gone... */) {
+			list_del(&bo->list);
+			bo_del(bo);
+			bo = NULL;
+			continue;
 		}
-		bo->gpuaddr = req.gpuaddr;
-		bo->map = fbmem;
+		/* TODO check for compatible flags? */
+		if (is_idle(bo)) {
+			list_del(&bo->list);
+			break;
+		}
+		bo = NULL;
+		break;
 	}
+	pthread_mutex_unlock(&table_lock);
 
 	return bo;
-fail:
-	if (bo)
-		fd_bo_del(bo);
-	return NULL;
 }
 
-struct fd_bo * fd_bo_from_name(struct fd_device *dev, uint32_t name)
+
+drm_public struct fd_bo *
+fd_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags)
+{
+	struct fd_bo *bo = NULL;
+	struct fd_bo_bucket *bucket;
+	uint32_t handle;
+	int ret;
+
+	size = ALIGN(size, 4096);
+	bucket = get_bucket(dev, size);
+
+	/* see if we can be green and recycle: */
+	if (bucket) {
+		size = bucket->size;
+		bo = find_in_bucket(dev, bucket, flags);
+		if (bo) {
+			atomic_set(&bo->refcnt, 1);
+			fd_device_ref(bo->dev);
+			return bo;
+		}
+	}
+
+	ret = dev->funcs->bo_new_handle(dev, size, flags, &handle);
+	if (ret)
+		return NULL;
+
+	pthread_mutex_lock(&table_lock);
+	bo = bo_from_handle(dev, size, handle);
+	bo->bo_reuse = 1;
+	pthread_mutex_unlock(&table_lock);
+
+	return bo;
+}
+
+drm_public struct fd_bo *
+fd_bo_from_handle(struct fd_device *dev, uint32_t handle, uint32_t size)
+{
+	struct fd_bo *bo = NULL;
+
+	pthread_mutex_lock(&table_lock);
+	bo = bo_from_handle(dev, size, handle);
+	pthread_mutex_unlock(&table_lock);
+
+	return bo;
+}
+
+drm_public struct fd_bo *
+fd_bo_from_dmabuf(struct fd_device *dev, int fd)
+{
+	struct drm_prime_handle req = {
+			.fd = fd,
+	};
+	int ret, size;
+
+	ret = drmIoctl(dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &req);
+	if (ret) {
+		return NULL;
+	}
+
+	/* hmm, would be nice if we had a way to figure out the size.. */
+	size = 0;
+
+	return fd_bo_from_handle(dev, req.handle, size);
+}
+
+drm_public struct fd_bo * fd_bo_from_name(struct fd_device *dev, uint32_t name)
 {
 	struct drm_gem_open req = {
 			.name = name,
 	};
+	struct fd_bo *bo;
+
+	pthread_mutex_lock(&table_lock);
+
+	/* check name table first, to see if bo is already open: */
+	bo = lookup_bo(dev->name_table, name);
+	if (bo)
+		goto out_unlock;
 
 	if (drmIoctl(dev->fd, DRM_IOCTL_GEM_OPEN, &req)) {
-		return NULL;
+		ERROR_MSG("gem-open failed: %s", strerror(errno));
+		goto out_unlock;
 	}
 
-	return bo_from_handle(dev, req.size, req.handle);
+	bo = lookup_bo(dev->handle_table, req.handle);
+	if (bo)
+		goto out_unlock;
+
+	bo = bo_from_handle(dev, req.size, req.handle);
+	if (bo)
+		set_name(bo, name);
+
+out_unlock:
+	pthread_mutex_unlock(&table_lock);
+
+	return bo;
 }
 
-struct fd_bo * fd_bo_ref(struct fd_bo *bo)
+drm_public struct fd_bo * fd_bo_ref(struct fd_bo *bo)
 {
 	atomic_inc(&bo->refcnt);
 	return bo;
 }
 
-void fd_bo_del(struct fd_bo *bo)
+drm_public void fd_bo_del(struct fd_bo *bo)
 {
+	struct fd_device *dev = bo->dev;
+
 	if (!atomic_dec_and_test(&bo->refcnt))
 		return;
 
+	if (bo->fd) {
+		close(bo->fd);
+		bo->fd = 0;
+	}
+
+	pthread_mutex_lock(&table_lock);
+
+	if (bo->bo_reuse) {
+		struct fd_bo_bucket *bucket = get_bucket(dev, bo->size);
+
+		/* see if we can be green and recycle: */
+		if (bucket) {
+			struct timespec time;
+
+			clock_gettime(CLOCK_MONOTONIC, &time);
+
+			bo->free_time = time.tv_sec;
+			list_addtail(&bo->list, &bucket->list);
+			fd_cleanup_bo_cache(dev, time.tv_sec);
+
+			/* bo's in the bucket cache don't have a ref and
+			 * don't hold a ref to the dev:
+			 */
+
+			goto out;
+		}
+	}
+
+	bo_del(bo);
+out:
+	fd_device_del_locked(dev);
+	pthread_mutex_unlock(&table_lock);
+}
+
+/* Called under table_lock */
+static void bo_del(struct fd_bo *bo)
+{
 	if (bo->map)
-		munmap(bo->map, bo->size);
+		drm_munmap(bo->map, bo->size);
+
+	/* TODO probably bo's in bucket list get removed from
+	 * handle table??
+	 */
 
 	if (bo->handle) {
 		struct drm_gem_close req = {
 				.handle = bo->handle,
 		};
+		drmHashDelete(bo->dev->handle_table, bo->handle);
+		if (bo->name)
+			drmHashDelete(bo->dev->name_table, bo->name);
 		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 	}
 
-	free(bo);
+	bo->funcs->destroy(bo);
 }
 
-int fd_bo_get_name(struct fd_bo *bo, uint32_t *name)
+drm_public int fd_bo_get_name(struct fd_bo *bo, uint32_t *name)
 {
 	if (!bo->name) {
 		struct drm_gem_flink req = {
@@ -210,7 +348,9 @@ int fd_bo_get_name(struct fd_bo *bo, uint32_t *name)
 			return ret;
 		}
 
-		bo->name = req.name;
+		pthread_mutex_lock(&table_lock);
+		set_name(bo, req.name);
+		pthread_mutex_unlock(&table_lock);
 	}
 
 	*name = bo->name;
@@ -218,28 +358,48 @@ int fd_bo_get_name(struct fd_bo *bo, uint32_t *name)
 	return 0;
 }
 
-uint32_t fd_bo_handle(struct fd_bo *bo)
+drm_public uint32_t fd_bo_handle(struct fd_bo *bo)
 {
 	return bo->handle;
 }
 
-uint32_t fd_bo_size(struct fd_bo *bo)
+drm_public int fd_bo_dmabuf(struct fd_bo *bo)
+{
+	if (!bo->fd) {
+		struct drm_prime_handle req = {
+				.handle = bo->handle,
+				.flags = DRM_CLOEXEC,
+		};
+		int ret;
+
+		ret = drmIoctl(bo->dev->fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &req);
+		if (ret) {
+			return ret;
+		}
+
+		bo->fd = req.fd;
+	}
+	return dup(bo->fd);
+}
+
+drm_public uint32_t fd_bo_size(struct fd_bo *bo)
 {
 	return bo->size;
 }
 
-void * fd_bo_map(struct fd_bo *bo)
+drm_public void * fd_bo_map(struct fd_bo *bo)
 {
 	if (!bo->map) {
+		uint64_t offset;
 		int ret;
 
-		ret = bo_alloc(bo);
+		ret = bo->funcs->offset(bo, &offset);
 		if (ret) {
 			return NULL;
 		}
 
-		bo->map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-				bo->dev->fd, bo->offset);
+		bo->map = drm_mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+				bo->dev->fd, offset);
 		if (bo->map == MAP_FAILED) {
 			ERROR_MSG("mmap failed: %s", strerror(errno));
 			bo->map = NULL;
@@ -248,27 +408,13 @@ void * fd_bo_map(struct fd_bo *bo)
 	return bo->map;
 }
 
-uint32_t fd_bo_gpuaddr(struct fd_bo *bo, uint32_t offset)
+/* a bit odd to take the pipe as an arg, but it's a, umm, quirk of kgsl.. */
+drm_public int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op)
 {
-	if (!bo->gpuaddr) {
-		struct drm_kgsl_gem_bufinfo req = {
-				.handle = bo->handle,
-		};
-		int ret;
+	return bo->funcs->cpu_prep(bo, pipe, op);
+}
 
-		ret = bo_alloc(bo);
-		if (ret) {
-			return ret;
-		}
-
-		ret = drmCommandWriteRead(bo->dev->fd, DRM_KGSL_GEM_GET_BUFINFO,
-				&req, sizeof(req));
-		if (ret) {
-			ERROR_MSG("get bufinfo failed: %s", strerror(errno));
-			return 0;
-		}
-
-		bo->gpuaddr = req.gpuaddr[0];
-	}
-	return bo->gpuaddr + offset;
+drm_public void fd_bo_cpu_fini(struct fd_bo *bo)
+{
+	bo->funcs->cpu_fini(bo);
 }

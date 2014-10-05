@@ -81,20 +81,30 @@ extern "C" {
 
 /* Video mode flags */
 /* bit compatible with the xorg definitions. */
-#define DRM_MODE_FLAG_PHSYNC    (1<<0)
-#define DRM_MODE_FLAG_NHSYNC    (1<<1)
-#define DRM_MODE_FLAG_PVSYNC    (1<<2)
-#define DRM_MODE_FLAG_NVSYNC    (1<<3)
-#define DRM_MODE_FLAG_INTERLACE (1<<4)
-#define DRM_MODE_FLAG_DBLSCAN   (1<<5)
-#define DRM_MODE_FLAG_CSYNC     (1<<6)
-#define DRM_MODE_FLAG_PCSYNC    (1<<7)
-#define DRM_MODE_FLAG_NCSYNC    (1<<8)
-#define DRM_MODE_FLAG_HSKEW     (1<<9) /* hskew provided */
-#define DRM_MODE_FLAG_BCAST     (1<<10)
-#define DRM_MODE_FLAG_PIXMUX    (1<<11)
-#define DRM_MODE_FLAG_DBLCLK    (1<<12)
-#define DRM_MODE_FLAG_CLKDIV2   (1<<13)
+#define DRM_MODE_FLAG_PHSYNC			(1<<0)
+#define DRM_MODE_FLAG_NHSYNC			(1<<1)
+#define DRM_MODE_FLAG_PVSYNC			(1<<2)
+#define DRM_MODE_FLAG_NVSYNC			(1<<3)
+#define DRM_MODE_FLAG_INTERLACE			(1<<4)
+#define DRM_MODE_FLAG_DBLSCAN			(1<<5)
+#define DRM_MODE_FLAG_CSYNC			(1<<6)
+#define DRM_MODE_FLAG_PCSYNC			(1<<7)
+#define DRM_MODE_FLAG_NCSYNC			(1<<8)
+#define DRM_MODE_FLAG_HSKEW			(1<<9) /* hskew provided */
+#define DRM_MODE_FLAG_BCAST			(1<<10)
+#define DRM_MODE_FLAG_PIXMUX			(1<<11)
+#define DRM_MODE_FLAG_DBLCLK			(1<<12)
+#define DRM_MODE_FLAG_CLKDIV2			(1<<13)
+#define DRM_MODE_FLAG_3D_MASK			(0x1f<<14)
+#define  DRM_MODE_FLAG_3D_NONE			(0<<14)
+#define  DRM_MODE_FLAG_3D_FRAME_PACKING		(1<<14)
+#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	(2<<14)
+#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	(3<<14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	(4<<14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH		(5<<14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	(6<<14)
+#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	(7<<14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	(8<<14)
 
 /* DPMS flags */
 /* bit compatible with the xorg definitions. */
@@ -118,6 +128,8 @@ extern "C" {
 #define DRM_MODE_ENCODER_TMDS   2
 #define DRM_MODE_ENCODER_LVDS   3
 #define DRM_MODE_ENCODER_TVDAC  4
+#define DRM_MODE_ENCODER_VIRTUAL 5
+#define DRM_MODE_ENCODER_DSI	6
 
 #define DRM_MODE_SUBCONNECTOR_Automatic 0
 #define DRM_MODE_SUBCONNECTOR_Unknown   0
@@ -126,6 +138,7 @@ extern "C" {
 #define DRM_MODE_SUBCONNECTOR_Composite 5
 #define DRM_MODE_SUBCONNECTOR_SVIDEO    6
 #define DRM_MODE_SUBCONNECTOR_Component 8
+#define DRM_MODE_SUBCONNECTOR_SCART     9
 
 #define DRM_MODE_CONNECTOR_Unknown      0
 #define DRM_MODE_CONNECTOR_VGA          1
@@ -142,6 +155,8 @@ extern "C" {
 #define DRM_MODE_CONNECTOR_HDMIB        12
 #define DRM_MODE_CONNECTOR_TV		13
 #define DRM_MODE_CONNECTOR_eDP		14
+#define DRM_MODE_CONNECTOR_VIRTUAL      15
+#define DRM_MODE_CONNECTOR_DSI          16
 
 #define DRM_MODE_PROP_PENDING   (1<<0)
 #define DRM_MODE_PROP_RANGE     (1<<1)
@@ -218,11 +233,11 @@ typedef struct _drmModeProperty {
 	uint32_t flags;
 	char name[DRM_PROP_NAME_LEN];
 	int count_values;
-	uint64_t *values; // store the blob lengths
+	uint64_t *values; /* store the blob lengths */
 	int count_enums;
 	struct drm_mode_property_enum *enums;
 	int count_blobs;
-	uint32_t *blob_ids; // store the blob IDs
+	uint32_t *blob_ids; /* store the blob IDs */
 } drmModePropertyRes, *drmModePropertyPtr;
 
 typedef struct _drmModeCrtc {
@@ -280,6 +295,10 @@ typedef struct _drmModeConnector {
 	int count_encoders;
 	uint32_t *encoders; /**< List of encoder ids */
 } drmModeConnector, *drmModeConnectorPtr;
+
+#define DRM_PLANE_TYPE_OVERLAY 0
+#define DRM_PLANE_TYPE_PRIMARY 1
+#define DRM_PLANE_TYPE_CURSOR  2
 
 typedef struct _drmModeObjectProperties {
 	uint32_t count_props;
@@ -378,6 +397,7 @@ int drmModeSetCrtc(int fd, uint32_t crtcId, uint32_t bufferId,
  */
 int drmModeSetCursor(int fd, uint32_t crtcId, uint32_t bo_handle, uint32_t width, uint32_t height);
 
+int drmModeSetCursor2(int fd, uint32_t crtcId, uint32_t bo_handle, uint32_t width, uint32_t height, int32_t hot_x, int32_t hot_y);
 /**
  * Move the cursor on crtc
  */
@@ -429,7 +449,7 @@ extern drmModePlaneResPtr drmModeGetPlaneResources(int fd);
 extern drmModePlanePtr drmModeGetPlane(int fd, uint32_t plane_id);
 extern int drmModeSetPlane(int fd, uint32_t plane_id, uint32_t crtc_id,
 			   uint32_t fb_id, uint32_t flags,
-			   uint32_t crtc_x, uint32_t crtc_y,
+			   int32_t crtc_x, int32_t crtc_y,
 			   uint32_t crtc_w, uint32_t crtc_h,
 			   uint32_t src_x, uint32_t src_y,
 			   uint32_t src_w, uint32_t src_h);

@@ -8,25 +8,24 @@
 DEB_HOST_ARCH_OS  ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 DEB_HOST_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_CPU)
 
+confflags = \
+	--enable-radeon \
+	--disable-libkms \
+	$()
+
 # Linux vs. the rest:
 ifeq (linux, $(DEB_HOST_ARCH_OS))
 	confflags += --enable-udev
-	confflags += --enable-libkms
-	LIBKMS = yes
 	confflags += --enable-vmwgfx
 	confflags += --enable-nouveau
 	NOUVEAU = yes
-	confflags += --enable-radeon
-	RADEON = yes
 else
 	confflags += --disable-udev
-	confflags += --disable-libkms
-	LIBKMS = no
 	confflags += --disable-vmwgfx
 	confflags += --disable-nouveau
 	NOUVEAU = no
-	confflags += --disable-radeon
-	RADEON = no
+	# kfreebsd mangles freebsd's sys/types.h
+	confflags += CFLAGS="$(shell pkg-config --cflags libbsd-overlay)"
 endif
 
 # Intel is only on x86:
@@ -41,14 +40,18 @@ else
 	confflags += --disable-intel
 endif
 
-# Omap is only on arm
+# Omap and freedreno are only on arm
 ifneq (,$(filter arm,$(DEB_HOST_ARCH_CPU)))
-	OMAP = yes
+	ARM = yes
 endif
-ifeq ($(OMAP), yes)
+ifeq ($(ARM), yes)
 	confflags += --enable-omap-experimental-api
+	confflags += --enable-freedreno-experimental-api
+	confflags += --enable-exynos-experimental-api
 else
 	confflags += --disable-omap-experimental-api
+	confflags += --disable-freedreno-experimental-api
+	confflags += --disable-exynos-experimental-api
 endif
 
 ###
@@ -56,7 +59,7 @@ endif
 ###
 
 override_dh_auto_configure:
-	dh_auto_configure -- --enable-static=yes $(confflags)
+	dh_auto_configure -- --disable-silent-rules --enable-static=yes $(confflags)
 
 override_dh_auto_test:
 	dh_auto_test || echo "Test suite failure, but keeping on anyway"
@@ -66,12 +69,6 @@ override_dh_auto_install:
 
 override_dh_install:
 	find debian/tmp -name '*.la' -delete
-	# Temporary rules for libdrm_nouveau1a
-	rm debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libdrm_nouveau.a
-	ln -s libdrm_nouveau.so.1 \
-		debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libdrm_nouveau1.so
-	ln -sf libdrm_nouveau.so.2 \
-		debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libdrm_nouveau.so
 	dh_install --fail-missing
 
 override_dh_strip:
@@ -80,37 +77,29 @@ ifeq ($(INTEL), yes)
 	dh_strip -plibdrm-intel1 --dbg-package=libdrm-intel1-dbg
 endif
 ifeq ($(NOUVEAU), yes)
-	dh_strip -plibdrm-nouveau1a --dbg-package=libdrm-nouveau1a-dbg
 	dh_strip -plibdrm-nouveau2 --dbg-package=libdrm-nouveau2-dbg
 endif
-ifeq ($(RADEON), yes)
 	dh_strip -plibdrm-radeon1 --dbg-package=libdrm-radeon1-dbg
-endif
-ifeq ($(OMAP), yes)
+ifeq ($(ARM), yes)
 	dh_strip -plibdrm-omap1 --dbg-package=libdrm-omap1-dbg
-endif
-ifeq ($(LIBKMS), yes)
-	dh_strip -p libkms1 --dbg-package=libkms1-dbg
+	dh_strip -plibdrm-freedreno1 --dbg-package=libdrm-freedreno1-dbg
+	dh_strip -plibdrm-exynos1 --dbg-package=libdrm-exynos1-dbg
 endif
 	dh_strip -s --remaining-packages
 
 override_dh_makeshlibs:
-	dh_makeshlibs -plibdrm2 -V'libdrm2 (>= 2.4.38)' --add-udeb=libdrm2-udeb -- -c4
+	dh_makeshlibs -plibdrm2 -V'libdrm2 (>= 2.4.46)' --add-udeb=libdrm2-udeb -- -c4
 ifeq ($(INTEL), yes)
-	dh_makeshlibs -plibdrm-intel1 -V'libdrm-intel1 (>= 2.4.38)' -- -c4
+	dh_makeshlibs -plibdrm-intel1 -V'libdrm-intel1 (>= 2.4.57)' -- -c4
 endif
 ifeq ($(NOUVEAU), yes)
-	dh_makeshlibs -plibdrm-nouveau1a -V'libdrm-nouveau1a (>= 2.4.23)' -- -c4
 	dh_makeshlibs -plibdrm-nouveau2 -V'libdrm-nouveau2 (>= 2.4.38)' -- -c4
 endif
-ifeq ($(RADEON), yes)
 	dh_makeshlibs -plibdrm-radeon1 -V'libdrm-radeon1 (>= 2.4.39)' -- -c4
-endif
-ifeq ($(OMAP), yes)
+ifeq ($(ARM), yes)
 	dh_makeshlibs -plibdrm-omap1 -V'libdrm-omap1 (>= 2.4.38)' -- -c4
-endif
-ifeq ($(LIBKMS), yes)
-	dh_makeshlibs -plibkms1 -V'libkms1' -- -c4
+	dh_makeshlibs -plibdrm-freedreno1 -V'libdrm-freedreno1 (>= 2.4.57)' -- -c4
+	dh_makeshlibs -plibdrm-exynos1 -V'libdrm-exynos1' -- -c4
 endif
 
 %:

@@ -61,9 +61,8 @@ struct _drm_intel_bo {
 	unsigned long align;
 
 	/**
-	 * Last seen card virtual address (offset from the beginning of the
-	 * aperture) for the object.  This should be used to fill relocation
-	 * entries when calling drm_intel_bo_emit_reloc()
+	 * Deprecated field containing (possibly the low 32-bits of) the last
+	 * seen virtual card address.  Use offset64 instead.
 	 */
 	unsigned long offset;
 
@@ -84,6 +83,13 @@ struct _drm_intel_bo {
 	 * MM-specific handle for accessing object
 	 */
 	int handle;
+
+	/**
+	 * Last seen card virtual address (offset from the beginning of the
+	 * aperture) for the object.  This should be used to fill relocation
+	 * entries when calling drm_intel_bo_emit_reloc()
+	 */
+	uint64_t offset64;
 };
 
 enum aub_dump_bmp_format {
@@ -107,6 +113,11 @@ drm_intel_bo *drm_intel_bo_alloc_for_render(drm_intel_bufmgr *bufmgr,
 					    const char *name,
 					    unsigned long size,
 					    unsigned int alignment);
+drm_intel_bo *drm_intel_bo_alloc_userptr(drm_intel_bufmgr *bufmgr,
+					const char *name,
+					void *addr, uint32_t tiling_mode,
+					uint32_t stride, unsigned long size,
+					unsigned long flags);
 drm_intel_bo *drm_intel_bo_alloc_tiled(drm_intel_bufmgr *bufmgr,
 				       const char *name,
 				       int x, int y, int cpp,
@@ -171,6 +182,9 @@ int drm_intel_gem_bo_get_reloc_count(drm_intel_bo *bo);
 void drm_intel_gem_bo_clear_relocs(drm_intel_bo *bo, int start);
 void drm_intel_gem_bo_start_gtt_access(drm_intel_bo *bo, int write_enable);
 
+void
+drm_intel_bufmgr_gem_set_aub_filename(drm_intel_bufmgr *bufmgr,
+				      const char *filename);
 void drm_intel_bufmgr_gem_set_aub_dump(drm_intel_bufmgr *bufmgr, int enable);
 void drm_intel_gem_bo_aub_dump_bmp(drm_intel_bo *bo,
 				   int x1, int y1, int width, int height,
@@ -244,6 +258,11 @@ void drm_intel_decode(struct drm_intel_decode *ctx);
 int drm_intel_reg_read(drm_intel_bufmgr *bufmgr,
 		       uint32_t offset,
 		       uint64_t *result);
+
+int drm_intel_get_reset_stats(drm_intel_context *ctx,
+			      uint32_t *reset_count,
+			      uint32_t *active,
+			      uint32_t *pending);
 
 /** @{ Compatibility defines to keep old code building despite the symbol rename
  * from dri_* to drm_intel_*

@@ -42,20 +42,31 @@
 
 /* Video mode flags */
 /* bit compatible with the xorg definitions. */
-#define DRM_MODE_FLAG_PHSYNC	(1<<0)
-#define DRM_MODE_FLAG_NHSYNC	(1<<1)
-#define DRM_MODE_FLAG_PVSYNC	(1<<2)
-#define DRM_MODE_FLAG_NVSYNC	(1<<3)
-#define DRM_MODE_FLAG_INTERLACE	(1<<4)
-#define DRM_MODE_FLAG_DBLSCAN	(1<<5)
-#define DRM_MODE_FLAG_CSYNC	(1<<6)
-#define DRM_MODE_FLAG_PCSYNC	(1<<7)
-#define DRM_MODE_FLAG_NCSYNC	(1<<8)
-#define DRM_MODE_FLAG_HSKEW	(1<<9) /* hskew provided */
-#define DRM_MODE_FLAG_BCAST	(1<<10)
-#define DRM_MODE_FLAG_PIXMUX	(1<<11)
-#define DRM_MODE_FLAG_DBLCLK	(1<<12)
-#define DRM_MODE_FLAG_CLKDIV2	(1<<13)
+#define DRM_MODE_FLAG_PHSYNC			(1<<0)
+#define DRM_MODE_FLAG_NHSYNC			(1<<1)
+#define DRM_MODE_FLAG_PVSYNC			(1<<2)
+#define DRM_MODE_FLAG_NVSYNC			(1<<3)
+#define DRM_MODE_FLAG_INTERLACE			(1<<4)
+#define DRM_MODE_FLAG_DBLSCAN			(1<<5)
+#define DRM_MODE_FLAG_CSYNC			(1<<6)
+#define DRM_MODE_FLAG_PCSYNC			(1<<7)
+#define DRM_MODE_FLAG_NCSYNC			(1<<8)
+#define DRM_MODE_FLAG_HSKEW			(1<<9) /* hskew provided */
+#define DRM_MODE_FLAG_BCAST			(1<<10)
+#define DRM_MODE_FLAG_PIXMUX			(1<<11)
+#define DRM_MODE_FLAG_DBLCLK			(1<<12)
+#define DRM_MODE_FLAG_CLKDIV2			(1<<13)
+#define DRM_MODE_FLAG_3D_MASK			(0x1f<<14)
+#define  DRM_MODE_FLAG_3D_NONE			(0<<14)
+#define  DRM_MODE_FLAG_3D_FRAME_PACKING		(1<<14)
+#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	(2<<14)
+#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	(3<<14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	(4<<14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH		(5<<14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	(6<<14)
+#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	(7<<14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	(8<<14)
+
 
 /* DPMS flags */
 /* bit compatible with the xorg definitions. */
@@ -390,6 +401,19 @@ struct drm_mode_cursor {
 	__u32 handle;
 };
 
+struct drm_mode_cursor2 {
+	__u32 flags;
+	__u32 crtc_id;
+	__s32 x;
+	__s32 y;
+	__u32 width;
+	__u32 height;
+	/* driver specific handle */
+	__u32 handle;
+	__s32 hot_x;
+	__s32 hot_y;
+};
+
 struct drm_mode_crtc_lut {
 	__u32 crtc_id;
 	__u32 gamma_size;
@@ -401,7 +425,8 @@ struct drm_mode_crtc_lut {
 };
 
 #define DRM_MODE_PAGE_FLIP_EVENT 0x01
-#define DRM_MODE_PAGE_FLIP_FLAGS DRM_MODE_PAGE_FLIP_EVENT
+#define DRM_MODE_PAGE_FLIP_ASYNC 0x02
+#define DRM_MODE_PAGE_FLIP_FLAGS (DRM_MODE_PAGE_FLIP_EVENT|DRM_MODE_PAGE_FLIP_ASYNC)
 
 /*
  * Request a page flip on the specified crtc.
