@@ -22,6 +22,27 @@ include Makefile.sources
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
+AM_MAKEFLAGS = -s
+AM_DISTCHECK_CONFIGURE_FLAGS = \
+	--enable-udev \
+	--enable-libkms \
+	--enable-intel \
+	--enable-radeon \
+	--enable-amdgpu \
+	--enable-nouveau \
+	--enable-vc4 \
+	--enable-vmwgfx \
+	--enable-omap-experimental-api \
+	--enable-exynos-experimental-api \
+	--enable-freedreno \
+	--enable-freedreno-kgsl\
+	--enable-tegra-experimental-api \
+	--enable-etnaviv-experimental-api \
+	--enable-install-test-programs \
+	--enable-cairo-tests \
+	--enable-manpages \
+	--enable-valgrind
+
 pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = libdrm.pc
 
@@ -41,6 +62,10 @@ if HAVE_RADEON
 RADEON_SUBDIR = radeon
 endif
 
+if HAVE_AMDGPU
+AMDGPU_SUBDIR = amdgpu
+endif
+
 if HAVE_OMAP
 OMAP_SUBDIR = omap
 endif
@@ -53,23 +78,54 @@ if HAVE_FREEDRENO
 FREEDRENO_SUBDIR = freedreno
 endif
 
-SUBDIRS = . $(LIBKMS_SUBDIR) $(INTEL_SUBDIR) $(NOUVEAU_SUBDIR) $(RADEON_SUBDIR) $(OMAP_SUBDIR) $(EXYNOS_SUBDIR) $(FREEDRENO_SUBDIR) tests man
+if HAVE_TEGRA
+TEGRA_SUBDIR = tegra
+endif
+
+if HAVE_VC4
+VC4_SUBDIR = vc4
+endif
+
+if HAVE_ETNAVIV
+ETNAVIV_SUBDIR = etnaviv
+endif
+
+if BUILD_MANPAGES
+if HAVE_MANPAGES_STYLESHEET
+MAN_SUBDIR = man
+endif
+endif
+
+SUBDIRS = \
+	. \
+	$(LIBKMS_SUBDIR) \
+	$(INTEL_SUBDIR) \
+	$(NOUVEAU_SUBDIR) \
+	$(RADEON_SUBDIR) \
+	$(AMDGPU_SUBDIR) \
+	$(OMAP_SUBDIR) \
+	$(EXYNOS_SUBDIR) \
+	$(FREEDRENO_SUBDIR) \
+	$(TEGRA_SUBDIR) \
+	$(VC4_SUBDIR) \
+	$(ETNAVIV_SUBDIR) \
+	tests \
+	$(MAN_SUBDIR)
 
 libdrm_la_LTLIBRARIES = libdrm.la
 libdrm_ladir = $(libdir)
 libdrm_la_LDFLAGS = -version-number 2:4:0 -no-undefined
-libdrm_la_LIBADD = @CLOCK_LIB@
+libdrm_la_LIBADD = @CLOCK_LIB@ -lm
 
 libdrm_la_CPPFLAGS = -I$(top_srcdir)/include/drm
 AM_CFLAGS = \
+	$(WARN_CFLAGS) \
 	$(VALGRIND_CFLAGS)
 
 libdrm_la_SOURCES = $(LIBDRM_FILES)
 
 libdrmincludedir = ${includedir}
 libdrminclude_HEADERS = $(LIBDRM_H_FILES)
-
-EXTRA_DIST = Android.mk
 
 klibdrmincludedir = ${includedir}/libdrm
 klibdrminclude_HEADERS = $(LIBDRM_INCLUDE_H_FILES)
@@ -78,6 +134,7 @@ if HAVE_VMWGFX
 klibdrminclude_HEADERS += $(LIBDRM_INCLUDE_VMWGFX_H_FILES)
 endif
 
+EXTRA_DIST = include/drm/README
 
 copy-headers :
 	cp -r $(kernel_source)/include/uapi/drm/*.h $(top_srcdir)/include/drm/

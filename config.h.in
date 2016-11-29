@@ -15,20 +15,32 @@
    */
 #undef HAVE_ALLOCA_H
 
+/* Have amdgpu support */
+#undef HAVE_AMDGPU
+
 /* Have Cairo support */
 #undef HAVE_CAIRO
 
 /* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
 
+/* Enable CUNIT Have amdgpu support */
+#undef HAVE_CUNIT
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Have etnaviv support */
+#undef HAVE_ETNAVIV
 
 /* Have EXYNOS support */
 #undef HAVE_EXYNOS
 
 /* Have freedreno support */
 #undef HAVE_FREEDRENO
+
+/* Have freedreno support for KGSL kernel interface */
+#undef HAVE_FREEDRENO_KGSL
 
 /* Install test programs */
 #undef HAVE_INSTALL_TESTS
@@ -75,11 +87,20 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
+/* Define to 1 if you have the <sys/sysctl.h> header file. */
+#undef HAVE_SYS_SYSCTL_H
+
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Have Tegra support */
+#undef HAVE_TEGRA
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
@@ -87,15 +108,25 @@
 /* Use valgrind intrinsics to suppress false warnings */
 #undef HAVE_VALGRIND
 
-/* Compiler has -fvisibility support */
+/* Have VC4 support */
+#undef HAVE_VC4
+
+/* Compiler supports __attribute__(("hidden")) */
 #undef HAVE_VISIBILITY
 
 /* Have vmwgfx kernel headers */
 #undef HAVE_VMWGFX
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in <mkdev.h>.
+   */
+#undef MAJOR_IN_MKDEV
+
+/* Define to 1 if `major', `minor', and `makedev' are declared in
+   <sysmacros.h>. */
+#undef MAJOR_IN_SYSMACROS
 
 /* Name of package */
 #undef PACKAGE

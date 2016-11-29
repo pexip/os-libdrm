@@ -33,10 +33,11 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "libdrm.h"
+#include "libdrm_macros.h"
 #include "xf86drm.h"
 #include "intel_chipset.h"
 #include "intel_bufmgr.h"
+
 
 /* Struct for tracking drm_intel_decode state. */
 struct drm_intel_decode {
@@ -3597,7 +3598,7 @@ decode_3d_965(struct drm_intel_decode *ctx)
 		instr_out(ctx, 0, "3DSTATE_DEPTH_BUFFER\n");
 		if (IS_GEN5(devid) || IS_GEN6(devid))
 			instr_out(ctx, 1,
-				  "%s, %s, pitch = %d bytes, %stiled, HiZ %d, Seperate Stencil %d\n",
+				  "%s, %s, pitch = %d bytes, %stiled, HiZ %d, Separate Stencil %d\n",
 				  get_965_surfacetype(data[1] >> 29),
 				  get_965_depthformat((data[1] >> 18) & 0x7),
 				  (data[1] & 0x0001ffff) + 1,
@@ -3630,7 +3631,6 @@ decode_3d_965(struct drm_intel_decode *ctx)
 
 	case 0x7a00:
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {
-			unsigned int i;
 			if (len != 4 && len != 5)
 				fprintf(out, "Bad count in PIPE_CONTROL\n");
 
@@ -3732,8 +3732,6 @@ decode_3d_965(struct drm_intel_decode *ctx)
 		if (opcode_3d->func) {
 			return opcode_3d->func(ctx);
 		} else {
-			unsigned int i;
-
 			instr_out(ctx, 0, "%s\n", opcode_3d->name);
 
 			for (i = 1; i < len; i++) {
@@ -3817,7 +3815,7 @@ decode_3d_i830(struct drm_intel_decode *ctx)
 	return 1;
 }
 
-drm_public struct drm_intel_decode *
+struct drm_intel_decode *
 drm_intel_decode_context_alloc(uint32_t devid)
 {
 	struct drm_intel_decode *ctx;
@@ -3829,7 +3827,9 @@ drm_intel_decode_context_alloc(uint32_t devid)
 	ctx->devid = devid;
 	ctx->out = stdout;
 
-	if (IS_GEN8(devid))
+	if (IS_GEN9(devid))
+		ctx->gen = 9;
+	else if (IS_GEN8(devid))
 		ctx->gen = 8;
 	else if (IS_GEN7(devid))
 		ctx->gen = 7;
@@ -3849,20 +3849,20 @@ drm_intel_decode_context_alloc(uint32_t devid)
 	return ctx;
 }
 
-drm_public void
+void
 drm_intel_decode_context_free(struct drm_intel_decode *ctx)
 {
 	free(ctx);
 }
 
-drm_public void
+void
 drm_intel_decode_set_dump_past_end(struct drm_intel_decode *ctx,
 				   int dump_past_end)
 {
 	ctx->dump_past_end = !!dump_past_end;
 }
 
-drm_public void
+void
 drm_intel_decode_set_batch_pointer(struct drm_intel_decode *ctx,
 				   void *data, uint32_t hw_offset, int count)
 {
@@ -3871,7 +3871,7 @@ drm_intel_decode_set_batch_pointer(struct drm_intel_decode *ctx,
 	ctx->base_count = count;
 }
 
-drm_public void
+void
 drm_intel_decode_set_head_tail(struct drm_intel_decode *ctx,
 			       uint32_t head, uint32_t tail)
 {
@@ -3879,11 +3879,11 @@ drm_intel_decode_set_head_tail(struct drm_intel_decode *ctx,
 	ctx->tail = tail;
 }
 
-drm_public void
+void
 drm_intel_decode_set_output_file(struct drm_intel_decode *ctx,
-				 FILE *out)
+				 FILE *output)
 {
-	ctx->out = out;
+	ctx->out = output;
 }
 
 /**
@@ -3893,7 +3893,7 @@ drm_intel_decode_set_output_file(struct drm_intel_decode *ctx,
  * \param count number of DWORDs to decode in the batch buffer
  * \param hw_offset hardware address for the buffer
  */
-drm_public void
+void
 drm_intel_decode(struct drm_intel_decode *ctx)
 {
 	int ret;

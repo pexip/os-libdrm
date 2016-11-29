@@ -25,11 +25,13 @@
  *
  **************************************************************************/
 
-
+#include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 #include "xf86drm.h"
 #include "libkms.h"
+
+#include "util/kms.h"
 
 #define CHECK_RET_RETURN(ret, str) \
 	if (ret < 0) { \
@@ -37,7 +39,7 @@
 		return ret; \
 	}
 
-int test_bo(struct kms_driver *kms)
+static int test_bo(struct kms_driver *kms)
 {
 	struct kms_bo *bo;
 	int ret;
@@ -56,22 +58,37 @@ int test_bo(struct kms_driver *kms)
 	return 0;
 }
 
-char *drivers[] = {
-	"i915",
-	"radeon",
-	"nouveau",
-	"vmwgfx",
-	"exynos",
-	NULL
-};
+static void usage(const char *program)
+{
+	fprintf(stderr, "Usage: %s [options]\n", program);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "  -D DEVICE  open the given device\n");
+	fprintf(stderr, "  -M MODULE  open the given module\n");
+}
 
 int main(int argc, char** argv)
 {
+	static const char optstr[] = "D:M:";
 	struct kms_driver *kms;
-	int ret, fd, i;
+	int c, fd, ret;
+	char *device = NULL;
+	char *module = NULL;
 
-	for (i = 0, fd = -1; fd < 0 && drivers[i]; i++)
-		fd = drmOpen(drivers[i], NULL);
+	while ((c = getopt(argc, argv, optstr)) != -1) {
+		switch (c) {
+		case 'D':
+			device = optarg;
+			break;
+		case 'M':
+			module = optarg;
+			break;
+		default:
+			usage(argv[0]);
+			return 0;
+		}
+	}
+
+	fd = util_open(device, module);
 	CHECK_RET_RETURN(fd, "Could not open device");
 
 	ret = kms_create(fd, &kms);
