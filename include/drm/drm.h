@@ -181,7 +181,7 @@ enum drm_map_type {
 	_DRM_AGP = 3,		  /**< AGP/GART */
 	_DRM_SCATTER_GATHER = 4,  /**< Scatter/gather memory for PCI DMA */
 	_DRM_CONSISTENT = 5,	  /**< Consistent memory for PCI DMA */
-	_DRM_GEM = 6,		  /**< GEM object */
+	_DRM_GEM = 6		  /**< GEM object */
 };
 
 /**
@@ -435,7 +435,7 @@ struct drm_draw {
  * DRM_IOCTL_UPDATE_DRAW ioctl argument type.
  */
 typedef enum {
-	DRM_DRAWABLE_CLIPRECTS,
+	DRM_DRAWABLE_CLIPRECTS
 } drm_drawable_info_type_t;
 
 struct drm_update_draw {
@@ -618,6 +618,29 @@ struct drm_get_cap {
 	__u64 value;
 };
 
+/**
+ * DRM_CLIENT_CAP_STEREO_3D
+ *
+ * if set to 1, the DRM core will expose the stereo 3D capabilities of the
+ * monitor by advertising the supported 3D layouts in the flags of struct
+ * drm_mode_modeinfo.
+ */
+#define DRM_CLIENT_CAP_STEREO_3D	1
+
+/**
+ * DRM_CLIENT_CAP_UNIVERSAL_PLANES
+ *
+ * if set to 1, the DRM core will expose the full universal plane list
+ * (including primary and cursor planes).
+ */
+#define DRM_CLIENT_CAP_UNIVERSAL_PLANES 2
+
+/** DRM_IOCTL_SET_CLIENT_CAP ioctl argument type */
+struct drm_set_client_cap {
+	__u64 capability;
+	__u64 value;
+};
+
 #define DRM_CLOEXEC O_CLOEXEC
 struct drm_prime_handle {
 	__u32 handle;
@@ -650,6 +673,7 @@ struct drm_prime_handle {
 #define DRM_IOCTL_GEM_FLINK		DRM_IOWR(0x0a, struct drm_gem_flink)
 #define DRM_IOCTL_GEM_OPEN		DRM_IOWR(0x0b, struct drm_gem_open)
 #define DRM_IOCTL_GET_CAP		DRM_IOWR(0x0c, struct drm_get_cap)
+#define DRM_IOCTL_SET_CLIENT_CAP	DRM_IOW( 0x0d, struct drm_set_client_cap)
 
 #define DRM_IOCTL_SET_UNIQUE		DRM_IOW( 0x10, struct drm_unique)
 #define DRM_IOCTL_AUTH_MAGIC		DRM_IOW( 0x11, struct drm_auth)
@@ -733,6 +757,7 @@ struct drm_prime_handle {
 #define DRM_IOCTL_MODE_ADDFB2		DRM_IOWR(0xB8, struct drm_mode_fb_cmd2)
 #define DRM_IOCTL_MODE_OBJ_GETPROPERTIES	DRM_IOWR(0xB9, struct drm_mode_obj_get_properties)
 #define DRM_IOCTL_MODE_OBJ_SETPROPERTY	DRM_IOWR(0xBA, struct drm_mode_obj_set_property)
+#define DRM_IOCTL_MODE_CURSOR2		DRM_IOWR(0xBB, struct drm_mode_cursor2)
 
 /**
  * Device specific ioctls should only be in their respective headers
@@ -779,6 +804,8 @@ struct drm_event_vblank {
 #define DRM_CAP_DUMB_PREFERRED_DEPTH 0x3
 #define DRM_CAP_DUMB_PREFER_SHADOW 0x4
 #define DRM_CAP_PRIME 0x5
+#define DRM_CAP_TIMESTAMP_MONOTONIC 0x6
+#define DRM_CAP_ASYNC_PAGE_FLIP 0x7
 
 #define DRM_PRIME_CAP_IMPORT 0x1
 #define DRM_PRIME_CAP_EXPORT 0x2

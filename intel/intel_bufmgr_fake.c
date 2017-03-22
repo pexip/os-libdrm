@@ -49,6 +49,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "mm.h"
+#include "libdrm.h"
 #include "libdrm_lists.h"
 
 /* Support gcc's __FUNCTION__ for people using other compilers */
@@ -248,7 +249,7 @@ FENCE_LTE(unsigned a, unsigned b)
 	return 0;
 }
 
-void
+drm_public void
 drm_intel_bufmgr_fake_set_fence_callback(drm_intel_bufmgr *bufmgr,
 					 unsigned int (*emit) (void *priv),
 					 void (*wait) (unsigned int fence,
@@ -505,7 +506,7 @@ alloc_backing_store(drm_intel_bo *bo)
 
 	bo_fake->backing_store = malloc(bo->size);
 
-	DBG("alloc_backing - buf %d %p %d\n", bo_fake->id,
+	DBG("alloc_backing - buf %d %p %lu\n", bo_fake->id,
 	    bo_fake->backing_store, bo->size);
 	assert(bo_fake->backing_store);
 }
@@ -716,7 +717,7 @@ evict_and_alloc_block(drm_intel_bo *bo)
 		if (alloc_block(bo))
 			return 1;
 
-	DBG("%s 0x%x bytes failed\n", __FUNCTION__, bo->size);
+	DBG("%s 0x%lx bytes failed\n", __FUNCTION__, bo->size);
 
 	return 0;
 }
@@ -771,7 +772,7 @@ drm_intel_fake_bo_wait_rendering(drm_intel_bo *bo)
  *  -- just evict everything
  *  -- and wait for idle
  */
-void
+drm_public void
 drm_intel_bufmgr_fake_contended_lock_take(drm_intel_bufmgr *bufmgr)
 {
 	drm_intel_bufmgr_fake *bufmgr_fake = (drm_intel_bufmgr_fake *) bufmgr;
@@ -835,7 +836,7 @@ drm_intel_fake_bo_alloc(drm_intel_bufmgr *bufmgr,
 	bo_fake->flags = 0;
 	bo_fake->is_static = 0;
 
-	DBG("drm_bo_alloc: (buf %d: %s, %d kb)\n", bo_fake->id, bo_fake->name,
+	DBG("drm_bo_alloc: (buf %d: %s, %lu kb)\n", bo_fake->id, bo_fake->name,
 	    bo_fake->bo.size / 1024);
 
 	return &bo_fake->bo;
@@ -867,7 +868,7 @@ drm_intel_fake_bo_alloc_tiled(drm_intel_bufmgr * bufmgr,
 				       4096);
 }
 
-drm_intel_bo *
+drm_public drm_intel_bo *
 drm_intel_bo_fake_alloc_static(drm_intel_bufmgr *bufmgr,
 			       const char *name,
 			       unsigned long offset,
@@ -894,7 +895,7 @@ drm_intel_bo_fake_alloc_static(drm_intel_bufmgr *bufmgr,
 	bo_fake->flags = BM_PINNED;
 	bo_fake->is_static = 1;
 
-	DBG("drm_bo_alloc_static: (buf %d: %s, %d kb)\n", bo_fake->id,
+	DBG("drm_bo_alloc_static: (buf %d: %s, %lu kb)\n", bo_fake->id,
 	    bo_fake->name, bo_fake->bo.size / 1024);
 
 	return &bo_fake->bo;
@@ -962,7 +963,7 @@ drm_intel_fake_bo_unreference(drm_intel_bo *bo)
  * Set the buffer as not requiring backing store, and instead get the callback
  * invoked whenever it would be set dirty.
  */
-void
+drm_public void
 drm_intel_bo_fake_disable_backing_store(drm_intel_bo *bo,
 					void (*invalidate_cb) (drm_intel_bo *bo,
 							       void *ptr),
@@ -1022,7 +1023,7 @@ static int
 		return 0;
 
 	{
-		DBG("drm_bo_map: (buf %d: %s, %d kb)\n", bo_fake->id,
+		DBG("drm_bo_map: (buf %d: %s, %lu kb)\n", bo_fake->id,
 		    bo_fake->name, bo_fake->bo.size / 1024);
 
 		if (bo->virtual != NULL) {
@@ -1100,7 +1101,7 @@ static int
 	if (--bo_fake->map_count != 0)
 		return 0;
 
-	DBG("drm_bo_unmap: (buf %d: %s, %d kb)\n", bo_fake->id, bo_fake->name,
+	DBG("drm_bo_unmap: (buf %d: %s, %lu kb)\n", bo_fake->id, bo_fake->name,
 	    bo_fake->bo.size / 1024);
 
 	bo->virtual = NULL;
@@ -1167,7 +1168,7 @@ static int
 
 	bufmgr_fake = (drm_intel_bufmgr_fake *) bo->bufmgr;
 
-	DBG("drm_bo_validate: (buf %d: %s, %d kb)\n", bo_fake->id,
+	DBG("drm_bo_validate: (buf %d: %s, %lu kb)\n", bo_fake->id,
 	    bo_fake->name, bo_fake->bo.size / 1024);
 
 	/* Sanity check: Buffers should be unmapped before being validated.
@@ -1197,7 +1198,7 @@ static int
 
 	/* Upload the buffer contents if necessary */
 	if (bo_fake->dirty) {
-		DBG("Upload dirty buf %d:%s, sz %d offset 0x%x\n", bo_fake->id,
+		DBG("Upload dirty buf %d:%s, sz %lu offset 0x%x\n", bo_fake->id,
 		    bo_fake->name, bo->size, bo_fake->block->mem->ofs);
 
 		assert(!(bo_fake->flags & (BM_NO_BACKING_STORE | BM_PINNED)));
@@ -1416,7 +1417,7 @@ drm_intel_bo_fake_post_submit(drm_intel_bo *bo)
 	bo_fake->write_domain = 0;
 }
 
-void
+drm_public void
 drm_intel_bufmgr_fake_set_exec_callback(drm_intel_bufmgr *bufmgr,
 					     int (*exec) (drm_intel_bo *bo,
 							  unsigned int used,
@@ -1522,12 +1523,12 @@ drm_intel_fake_check_aperture_space(drm_intel_bo ** bo_array, int count)
 	}
 
 	if (sz > bufmgr_fake->size) {
-		DBG("check_space: overflowed bufmgr size, %dkb vs %dkb\n",
+		DBG("check_space: overflowed bufmgr size, %ukb vs %lukb\n",
 		    sz / 1024, bufmgr_fake->size / 1024);
 		return -1;
 	}
 
-	DBG("drm_check_space: sz %dkb vs bufgr %dkb\n", sz / 1024,
+	DBG("drm_check_space: sz %ukb vs bufgr %lukb\n", sz / 1024,
 	    bufmgr_fake->size / 1024);
 	return 0;
 }
@@ -1539,7 +1540,8 @@ drm_intel_fake_check_aperture_space(drm_intel_bo ** bo_array, int count)
  * Used by the X Server on LeaveVT, when the card memory is no longer our
  * own.
  */
-void drm_intel_bufmgr_fake_evict_all(drm_intel_bufmgr *bufmgr)
+drm_public void
+drm_intel_bufmgr_fake_evict_all(drm_intel_bufmgr *bufmgr)
 {
 	drm_intel_bufmgr_fake *bufmgr_fake = (drm_intel_bufmgr_fake *) bufmgr;
 	struct block *block, *tmp;
@@ -1573,21 +1575,20 @@ void drm_intel_bufmgr_fake_evict_all(drm_intel_bufmgr *bufmgr)
 	pthread_mutex_unlock(&bufmgr_fake->lock);
 }
 
-void drm_intel_bufmgr_fake_set_last_dispatch(drm_intel_bufmgr *bufmgr,
-					     volatile unsigned int
-					     *last_dispatch)
+drm_public void
+drm_intel_bufmgr_fake_set_last_dispatch(drm_intel_bufmgr *bufmgr,
+					volatile unsigned int
+					*last_dispatch)
 {
 	drm_intel_bufmgr_fake *bufmgr_fake = (drm_intel_bufmgr_fake *) bufmgr;
 
 	bufmgr_fake->last_dispatch = (volatile int *)last_dispatch;
 }
 
-drm_intel_bufmgr *drm_intel_bufmgr_fake_init(int fd,
-					     unsigned long low_offset,
-					     void *low_virtual,
-					     unsigned long size,
-					     volatile unsigned int
-					     *last_dispatch)
+drm_public drm_intel_bufmgr *
+drm_intel_bufmgr_fake_init(int fd, unsigned long low_offset,
+			   void *low_virtual, unsigned long size,
+			   volatile unsigned int *last_dispatch)
 {
 	drm_intel_bufmgr_fake *bufmgr_fake;
 

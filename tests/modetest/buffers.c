@@ -24,7 +24,9 @@
  * IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <assert.h>
 #include <errno.h>
@@ -100,19 +102,47 @@ static const struct format_info format_info[] = {
 	{ DRM_FORMAT_NV16, "NV16", MAKE_YUV_INFO(YUV_YCbCr, 2, 1, 2) },
 	{ DRM_FORMAT_NV61, "NV61", MAKE_YUV_INFO(YUV_YCrCb, 2, 1, 2) },
 	/* YUV planar */
+	{ DRM_FORMAT_YUV420, "YU12", MAKE_YUV_INFO(YUV_YCbCr, 2, 2, 1) },
 	{ DRM_FORMAT_YVU420, "YV12", MAKE_YUV_INFO(YUV_YCrCb, 2, 2, 1) },
 	/* RGB16 */
+	{ DRM_FORMAT_ARGB4444, "AR12", MAKE_RGB_INFO(4, 8, 4, 4, 4, 0, 4, 12) },
+	{ DRM_FORMAT_XRGB4444, "XR12", MAKE_RGB_INFO(4, 8, 4, 4, 4, 0, 0, 0) },
+	{ DRM_FORMAT_ABGR4444, "AB12", MAKE_RGB_INFO(4, 0, 4, 4, 4, 8, 4, 12) },
+	{ DRM_FORMAT_XBGR4444, "XB12", MAKE_RGB_INFO(4, 0, 4, 4, 4, 8, 0, 0) },
+	{ DRM_FORMAT_RGBA4444, "RA12", MAKE_RGB_INFO(4, 12, 4, 8, 4, 4, 4, 0) },
+	{ DRM_FORMAT_RGBX4444, "RX12", MAKE_RGB_INFO(4, 12, 4, 8, 4, 4, 0, 0) },
+	{ DRM_FORMAT_BGRA4444, "BA12", MAKE_RGB_INFO(4, 4, 4, 8, 4, 12, 4, 0) },
+	{ DRM_FORMAT_BGRX4444, "BX12", MAKE_RGB_INFO(4, 4, 4, 8, 4, 12, 0, 0) },
 	{ DRM_FORMAT_ARGB1555, "AR15", MAKE_RGB_INFO(5, 10, 5, 5, 5, 0, 1, 15) },
 	{ DRM_FORMAT_XRGB1555, "XR15", MAKE_RGB_INFO(5, 10, 5, 5, 5, 0, 0, 0) },
+	{ DRM_FORMAT_ABGR1555, "AB15", MAKE_RGB_INFO(5, 0, 5, 5, 5, 10, 1, 15) },
+	{ DRM_FORMAT_XBGR1555, "XB15", MAKE_RGB_INFO(5, 0, 5, 5, 5, 10, 0, 0) },
+	{ DRM_FORMAT_RGBA5551, "RA15", MAKE_RGB_INFO(5, 11, 5, 6, 5, 1, 1, 0) },
+	{ DRM_FORMAT_RGBX5551, "RX15", MAKE_RGB_INFO(5, 11, 5, 6, 5, 1, 0, 0) },
+	{ DRM_FORMAT_BGRA5551, "BA15", MAKE_RGB_INFO(5, 1, 5, 6, 5, 11, 1, 0) },
+	{ DRM_FORMAT_BGRX5551, "BX15", MAKE_RGB_INFO(5, 1, 5, 6, 5, 11, 0, 0) },
 	{ DRM_FORMAT_RGB565, "RG16", MAKE_RGB_INFO(5, 11, 6, 5, 5, 0, 0, 0) },
+	{ DRM_FORMAT_BGR565, "BG16", MAKE_RGB_INFO(5, 0, 6, 5, 5, 11, 0, 0) },
 	/* RGB24 */
 	{ DRM_FORMAT_BGR888, "BG24", MAKE_RGB_INFO(8, 0, 8, 8, 8, 16, 0, 0) },
 	{ DRM_FORMAT_RGB888, "RG24", MAKE_RGB_INFO(8, 16, 8, 8, 8, 0, 0, 0) },
 	/* RGB32 */
 	{ DRM_FORMAT_ARGB8888, "AR24", MAKE_RGB_INFO(8, 16, 8, 8, 8, 0, 8, 24) },
-	{ DRM_FORMAT_BGRA8888, "BA24", MAKE_RGB_INFO(8, 8, 8, 16, 8, 24, 8, 0) },
 	{ DRM_FORMAT_XRGB8888, "XR24", MAKE_RGB_INFO(8, 16, 8, 8, 8, 0, 0, 0) },
+	{ DRM_FORMAT_ABGR8888, "AB24", MAKE_RGB_INFO(8, 0, 8, 8, 8, 16, 8, 24) },
+	{ DRM_FORMAT_XBGR8888, "XB24", MAKE_RGB_INFO(8, 0, 8, 8, 8, 16, 0, 0) },
+	{ DRM_FORMAT_RGBA8888, "RA24", MAKE_RGB_INFO(8, 24, 8, 16, 8, 8, 8, 0) },
+	{ DRM_FORMAT_RGBX8888, "RX24", MAKE_RGB_INFO(8, 24, 8, 16, 8, 8, 0, 0) },
+	{ DRM_FORMAT_BGRA8888, "BA24", MAKE_RGB_INFO(8, 8, 8, 16, 8, 24, 8, 0) },
 	{ DRM_FORMAT_BGRX8888, "BX24", MAKE_RGB_INFO(8, 8, 8, 16, 8, 24, 0, 0) },
+	{ DRM_FORMAT_ARGB2101010, "AR30", MAKE_RGB_INFO(10, 20, 10, 10, 10, 0, 2, 30) },
+	{ DRM_FORMAT_XRGB2101010, "XR30", MAKE_RGB_INFO(10, 20, 10, 10, 10, 0, 0, 0) },
+	{ DRM_FORMAT_ABGR2101010, "AB30", MAKE_RGB_INFO(10, 0, 10, 10, 10, 20, 2, 30) },
+	{ DRM_FORMAT_XBGR2101010, "XB30", MAKE_RGB_INFO(10, 0, 10, 10, 10, 20, 0, 0) },
+	{ DRM_FORMAT_RGBA1010102, "RA30", MAKE_RGB_INFO(10, 22, 10, 12, 10, 2, 2, 0) },
+	{ DRM_FORMAT_RGBX1010102, "RX30", MAKE_RGB_INFO(10, 22, 10, 12, 10, 2, 0, 0) },
+	{ DRM_FORMAT_BGRA1010102, "BA30", MAKE_RGB_INFO(10, 2, 10, 12, 10, 22, 2, 0) },
+	{ DRM_FORMAT_BGRX1010102, "BX30", MAKE_RGB_INFO(10, 2, 10, 12, 10, 22, 0, 0) },
 };
 
 unsigned int format_fourcc(const char *name)
@@ -309,13 +339,13 @@ fill_smpte_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 	for (y = 0; y < height * 6 / 9; ++y) {
 		for (x = 0; x < width; ++x)
 			y_mem[2*x] = colors_top[x * 7 / width].y;
-		y_mem += stride * 2;
+		y_mem += stride;
 	}
 
 	for (; y < height * 7 / 9; ++y) {
 		for (x = 0; x < width; ++x)
 			y_mem[2*x] = colors_middle[x * 7 / width].y;
-		y_mem += stride * 2;
+		y_mem += stride;
 	}
 
 	for (; y < height; ++y) {
@@ -326,7 +356,7 @@ fill_smpte_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 						   / (width / 7) + 4].y;
 		for (; x < width; ++x)
 			y_mem[2*x] = colors_bottom[7].y;
-		y_mem += stride * 2;
+		y_mem += stride;
 	}
 
 	/* Chroma */
@@ -335,7 +365,7 @@ fill_smpte_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 			c_mem[2*x+u] = colors_top[x * 7 / width].u;
 			c_mem[2*x+v] = colors_top[x * 7 / width].v;
 		}
-		c_mem += stride * 2;
+		c_mem += stride;
 	}
 
 	for (; y < height * 7 / 9; ++y) {
@@ -343,7 +373,7 @@ fill_smpte_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 			c_mem[2*x+u] = colors_middle[x * 7 / width].u;
 			c_mem[2*x+v] = colors_middle[x * 7 / width].v;
 		}
-		c_mem += stride * 2;
+		c_mem += stride;
 	}
 
 	for (; y < height; ++y) {
@@ -361,7 +391,7 @@ fill_smpte_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 			c_mem[2*x+u] = colors_bottom[7].u;
 			c_mem[2*x+v] = colors_bottom[7].v;
 		}
-		c_mem += stride * 2;
+		c_mem += stride;
 	}
 }
 
@@ -573,23 +603,55 @@ fill_smpte(const struct format_info *info, void *planes[3], unsigned int width,
 		return fill_smpte_yuv_planar(&info->yuv, planes[0], u, v,
 					     width, height, stride);
 
-	case DRM_FORMAT_YVU420:
+	case DRM_FORMAT_YUV420:
 		return fill_smpte_yuv_planar(&info->yuv, planes[0], planes[1],
 					     planes[2], width, height, stride);
 
+	case DRM_FORMAT_YVU420:
+		return fill_smpte_yuv_planar(&info->yuv, planes[0], planes[2],
+					     planes[1], width, height, stride);
+
+	case DRM_FORMAT_ARGB4444:
+	case DRM_FORMAT_XRGB4444:
+	case DRM_FORMAT_ABGR4444:
+	case DRM_FORMAT_XBGR4444:
+	case DRM_FORMAT_RGBA4444:
+	case DRM_FORMAT_RGBX4444:
+	case DRM_FORMAT_BGRA4444:
+	case DRM_FORMAT_BGRX4444:
 	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
 	case DRM_FORMAT_ARGB1555:
 	case DRM_FORMAT_XRGB1555:
+	case DRM_FORMAT_ABGR1555:
+	case DRM_FORMAT_XBGR1555:
+	case DRM_FORMAT_RGBA5551:
+	case DRM_FORMAT_RGBX5551:
+	case DRM_FORMAT_BGRA5551:
+	case DRM_FORMAT_BGRX5551:
 		return fill_smpte_rgb16(&info->rgb, planes[0],
 					width, height, stride);
+
 	case DRM_FORMAT_BGR888:
 	case DRM_FORMAT_RGB888:
 		return fill_smpte_rgb24(&info->rgb, planes[0],
 					width, height, stride);
 	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ABGR8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_RGBA8888:
+	case DRM_FORMAT_RGBX8888:
+	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_BGRX8888:
+	case DRM_FORMAT_ARGB2101010:
+	case DRM_FORMAT_XRGB2101010:
+	case DRM_FORMAT_ABGR2101010:
+	case DRM_FORMAT_XBGR2101010:
+	case DRM_FORMAT_RGBA1010102:
+	case DRM_FORMAT_RGBX1010102:
+	case DRM_FORMAT_BGRA1010102:
+	case DRM_FORMAT_BGRX1010102:
 		return fill_smpte_rgb32(&info->rgb, planes[0],
 					width, height, stride);
 	}
@@ -601,15 +663,32 @@ fill_smpte(const struct format_info *info, void *planes[3], unsigned int width,
 #define BLUE  0
 
 static void
-make_pwetty(void *data, int width, int height, int stride)
+make_pwetty(void *data, int width, int height, int stride, uint32_t format)
 {
 #ifdef HAVE_CAIRO
 	cairo_surface_t *surface;
 	cairo_t *cr;
 	int x, y;
+	cairo_format_t cairo_format;
+
+	/* we can ignore the order of R,G,B channels */
+	switch (format) {
+	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ARGB8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_ABGR8888:
+		cairo_format = CAIRO_FORMAT_ARGB32;
+		break;
+	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
+		cairo_format = CAIRO_FORMAT_RGB16_565;
+		break;
+	default:
+		return;
+	}
 
 	surface = cairo_image_surface_create_for_data(data,
-						      CAIRO_FORMAT_ARGB32,
+						      cairo_format,
 						      width, height,
 						      stride);
 	cr = cairo_create(surface);
@@ -647,11 +726,12 @@ make_pwetty(void *data, int width, int height, int stride)
 }
 
 static void
-fill_tiles_yuv_planar(const struct yuv_info *yuv,
+fill_tiles_yuv_planar(const struct format_info *info,
 		      unsigned char *y_mem, unsigned char *u_mem,
 		      unsigned char *v_mem, unsigned int width,
 		      unsigned int height, unsigned int stride)
 {
+	const struct yuv_info *yuv = &info->yuv;
 	unsigned int cs = yuv->chroma_stride;
 	unsigned int xsub = yuv->xsub;
 	unsigned int ysub = yuv->ysub;
@@ -681,10 +761,11 @@ fill_tiles_yuv_planar(const struct yuv_info *yuv,
 }
 
 static void
-fill_tiles_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
+fill_tiles_yuv_packed(const struct format_info *info, unsigned char *mem,
 		      unsigned int width, unsigned int height,
 		      unsigned int stride)
 {
+	const struct yuv_info *yuv = &info->yuv;
 	unsigned char *y_mem = (yuv->order & YUV_YC) ? mem : mem + 1;
 	unsigned char *c_mem = (yuv->order & YUV_CY) ? mem : mem + 1;
 	unsigned int u = (yuv->order & YUV_YCrCb) ? 2 : 0;
@@ -713,9 +794,11 @@ fill_tiles_yuv_packed(const struct yuv_info *yuv, unsigned char *mem,
 }
 
 static void
-fill_tiles_rgb16(const struct rgb_info *rgb, unsigned char *mem,
+fill_tiles_rgb16(const struct format_info *info, unsigned char *mem,
 		 unsigned int width, unsigned int height, unsigned int stride)
 {
+	const struct rgb_info *rgb = &info->rgb;
+	unsigned char *mem_base = mem;
 	unsigned int x, y;
 
 	for (y = 0; y < height; ++y) {
@@ -732,12 +815,15 @@ fill_tiles_rgb16(const struct rgb_info *rgb, unsigned char *mem,
 		}
 		mem += stride;
 	}
+
+	make_pwetty(mem_base, width, height, stride, info->format);
 }
 
 static void
-fill_tiles_rgb24(const struct rgb_info *rgb, unsigned char *mem,
+fill_tiles_rgb24(const struct format_info *info, unsigned char *mem,
 		 unsigned int width, unsigned int height, unsigned int stride)
 {
+	const struct rgb_info *rgb = &info->rgb;
 	unsigned int x, y;
 
 	for (y = 0; y < height; ++y) {
@@ -756,9 +842,10 @@ fill_tiles_rgb24(const struct rgb_info *rgb, unsigned char *mem,
 }
 
 static void
-fill_tiles_rgb32(const struct rgb_info *rgb, unsigned char *mem,
+fill_tiles_rgb32(const struct format_info *info, unsigned char *mem,
 		 unsigned int width, unsigned int height, unsigned int stride)
 {
+	const struct rgb_info *rgb = &info->rgb;
 	unsigned char *mem_base = mem;
 	unsigned int x, y;
 
@@ -777,7 +864,7 @@ fill_tiles_rgb32(const struct rgb_info *rgb, unsigned char *mem,
 		mem += stride;
 	}
 
-	make_pwetty(mem_base, width, height, stride);
+	make_pwetty(mem_base, width, height, stride, info->format);
 }
 
 static void
@@ -791,7 +878,7 @@ fill_tiles(const struct format_info *info, void *planes[3], unsigned int width,
 	case DRM_FORMAT_VYUY:
 	case DRM_FORMAT_YUYV:
 	case DRM_FORMAT_YVYU:
-		return fill_tiles_yuv_packed(&info->yuv, planes[0],
+		return fill_tiles_yuv_packed(info, planes[0],
 					     width, height, stride);
 
 	case DRM_FORMAT_NV12:
@@ -800,27 +887,59 @@ fill_tiles(const struct format_info *info, void *planes[3], unsigned int width,
 	case DRM_FORMAT_NV61:
 		u = info->yuv.order & YUV_YCbCr ? planes[1] : planes[1] + 1;
 		v = info->yuv.order & YUV_YCrCb ? planes[1] : planes[1] + 1;
-		return fill_tiles_yuv_planar(&info->yuv, planes[0], u, v,
+		return fill_tiles_yuv_planar(info, planes[0], u, v,
 					     width, height, stride);
 
-	case DRM_FORMAT_YVU420:
-		return fill_tiles_yuv_planar(&info->yuv, planes[0], planes[1],
+	case DRM_FORMAT_YUV420:
+		return fill_tiles_yuv_planar(info, planes[0], planes[1],
 					     planes[2], width, height, stride);
 
+	case DRM_FORMAT_YVU420:
+		return fill_tiles_yuv_planar(info, planes[0], planes[2],
+					     planes[1], width, height, stride);
+
+	case DRM_FORMAT_ARGB4444:
+	case DRM_FORMAT_XRGB4444:
+	case DRM_FORMAT_ABGR4444:
+	case DRM_FORMAT_XBGR4444:
+	case DRM_FORMAT_RGBA4444:
+	case DRM_FORMAT_RGBX4444:
+	case DRM_FORMAT_BGRA4444:
+	case DRM_FORMAT_BGRX4444:
 	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
 	case DRM_FORMAT_ARGB1555:
 	case DRM_FORMAT_XRGB1555:
-		return fill_tiles_rgb16(&info->rgb, planes[0],
+	case DRM_FORMAT_ABGR1555:
+	case DRM_FORMAT_XBGR1555:
+	case DRM_FORMAT_RGBA5551:
+	case DRM_FORMAT_RGBX5551:
+	case DRM_FORMAT_BGRA5551:
+	case DRM_FORMAT_BGRX5551:
+		return fill_tiles_rgb16(info, planes[0],
 					width, height, stride);
+
 	case DRM_FORMAT_BGR888:
 	case DRM_FORMAT_RGB888:
-		return fill_tiles_rgb24(&info->rgb, planes[0],
+		return fill_tiles_rgb24(info, planes[0],
 					width, height, stride);
 	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ABGR8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_RGBA8888:
+	case DRM_FORMAT_RGBX8888:
+	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_BGRX8888:
-		return fill_tiles_rgb32(&info->rgb, planes[0],
+	case DRM_FORMAT_ARGB2101010:
+	case DRM_FORMAT_XRGB2101010:
+	case DRM_FORMAT_ABGR2101010:
+	case DRM_FORMAT_XBGR2101010:
+	case DRM_FORMAT_RGBA1010102:
+	case DRM_FORMAT_RGBX1010102:
+	case DRM_FORMAT_BGRA1010102:
+	case DRM_FORMAT_BGRX1010102:
+		return fill_tiles_rgb32(info, planes[0],
 					width, height, stride);
 	}
 }
@@ -882,8 +1001,8 @@ fill_pattern(unsigned int format, enum fill_pattern pattern, void *planes[3],
  */
 
 static struct kms_bo *
-allocate_buffer(struct kms_driver *kms,
-		int width, int height, int *stride)
+allocate_buffer(struct kms_driver *kms, unsigned int width, unsigned int height,
+		unsigned int *stride)
 {
 	struct kms_bo *bo;
 	unsigned bo_attribs[] = {
@@ -917,15 +1036,33 @@ allocate_buffer(struct kms_driver *kms,
 
 struct kms_bo *
 create_test_buffer(struct kms_driver *kms, unsigned int format,
-		   int width, int height, int handles[4],
-		   int pitches[4], int offsets[4], enum fill_pattern pattern)
+		   unsigned int width, unsigned int height,
+		   unsigned int handles[4], unsigned int pitches[4],
+		   unsigned int offsets[4], enum fill_pattern pattern)
 {
+	unsigned int virtual_height;
 	struct kms_bo *bo;
-	int ret, stride;
-	void *planes[3];
+	void *planes[3] = { 0, };
 	void *virtual;
+	int ret;
 
-	bo = allocate_buffer(kms, width, height, &pitches[0]);
+	switch (format) {
+	case DRM_FORMAT_NV12:
+	case DRM_FORMAT_NV21:
+		virtual_height = height * 3 / 2;
+		break;
+
+	case DRM_FORMAT_NV16:
+	case DRM_FORMAT_NV61:
+		virtual_height = height * 2;
+		break;
+
+	default:
+		virtual_height = height;
+		break;
+	}
+
+	bo = allocate_buffer(kms, width, virtual_height, &pitches[0]);
 	if (!bo)
 		return NULL;
 
@@ -945,9 +1082,9 @@ create_test_buffer(struct kms_driver *kms, unsigned int format,
 	case DRM_FORMAT_VYUY:
 	case DRM_FORMAT_YUYV:
 	case DRM_FORMAT_YVYU:
-		pitches[0] = width * 2;
 		offsets[0] = 0;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
+		kms_bo_get_prop(bo, KMS_PITCH, &pitches[0]);
 
 		planes[0] = virtual;
 		break;
@@ -956,26 +1093,27 @@ create_test_buffer(struct kms_driver *kms, unsigned int format,
 	case DRM_FORMAT_NV21:
 	case DRM_FORMAT_NV16:
 	case DRM_FORMAT_NV61:
-		pitches[0] = width;
 		offsets[0] = 0;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
-		pitches[1] = width;
-		offsets[1] = width * height;
+		kms_bo_get_prop(bo, KMS_PITCH, &pitches[0]);
+		pitches[1] = pitches[0];
+		offsets[1] = pitches[0] * height;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[1]);
 
 		planes[0] = virtual;
 		planes[1] = virtual + offsets[1];
 		break;
 
+	case DRM_FORMAT_YUV420:
 	case DRM_FORMAT_YVU420:
-		pitches[0] = width;
 		offsets[0] = 0;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
-		pitches[1] = width / 2;
-		offsets[1] = width * height;
+		kms_bo_get_prop(bo, KMS_PITCH, &pitches[0]);
+		pitches[1] = pitches[0] / 2;
+		offsets[1] = pitches[0] * height;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[1]);
-		pitches[2] = width / 2;
-		offsets[2] = offsets[1] + (width * height) / 4;
+		pitches[2] = pitches[1];
+		offsets[2] = offsets[1] + pitches[1] * height / 2;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[2]);
 
 		planes[0] = virtual;
@@ -983,32 +1121,45 @@ create_test_buffer(struct kms_driver *kms, unsigned int format,
 		planes[2] = virtual + offsets[2];
 		break;
 
-	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_ARGB4444:
+	case DRM_FORMAT_XRGB4444:
+	case DRM_FORMAT_ABGR4444:
+	case DRM_FORMAT_XBGR4444:
+	case DRM_FORMAT_RGBA4444:
+	case DRM_FORMAT_RGBX4444:
+	case DRM_FORMAT_BGRA4444:
+	case DRM_FORMAT_BGRX4444:
 	case DRM_FORMAT_ARGB1555:
 	case DRM_FORMAT_XRGB1555:
-		pitches[0] = width * 2;
-		offsets[0] = 0;
-		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
-
-		planes[0] = virtual;
-		break;
-
+	case DRM_FORMAT_ABGR1555:
+	case DRM_FORMAT_XBGR1555:
+	case DRM_FORMAT_RGBA5551:
+	case DRM_FORMAT_RGBX5551:
+	case DRM_FORMAT_BGRA5551:
+	case DRM_FORMAT_BGRX5551:
+	case DRM_FORMAT_RGB565:
+	case DRM_FORMAT_BGR565:
 	case DRM_FORMAT_BGR888:
 	case DRM_FORMAT_RGB888:
-		pitches[0] = width * 3;
-		offsets[0] = 0;
-		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
-
-		planes[0] = virtual;
-		break;
-
 	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ABGR8888:
+	case DRM_FORMAT_XBGR8888:
+	case DRM_FORMAT_RGBA8888:
+	case DRM_FORMAT_RGBX8888:
+	case DRM_FORMAT_BGRA8888:
 	case DRM_FORMAT_BGRX8888:
-		pitches[0] = width * 4;
+	case DRM_FORMAT_ARGB2101010:
+	case DRM_FORMAT_XRGB2101010:
+	case DRM_FORMAT_ABGR2101010:
+	case DRM_FORMAT_XBGR2101010:
+	case DRM_FORMAT_RGBA1010102:
+	case DRM_FORMAT_RGBX1010102:
+	case DRM_FORMAT_BGRA1010102:
+	case DRM_FORMAT_BGRX1010102:
 		offsets[0] = 0;
 		kms_bo_get_prop(bo, KMS_HANDLE, &handles[0]);
+		kms_bo_get_prop(bo, KMS_PITCH, &pitches[0]);
 
 		planes[0] = virtual;
 		break;
