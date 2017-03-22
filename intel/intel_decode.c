@@ -21,6 +21,10 @@
  * IN THE SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -29,6 +33,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "libdrm.h"
+#include "xf86drm.h"
 #include "intel_chipset.h"
 #include "intel_bufmgr.h"
 
@@ -104,11 +110,7 @@ static float int_as_float(uint32_t intval)
 	return uval.f;
 }
 
-static void
-instr_out(struct drm_intel_decode *ctx, unsigned int index,
-	  const char *fmt, ...) __attribute__((format(__printf__, 3, 4)));
-
-static void
+static void DRM_PRINTFLIKE(3, 4)
 instr_out(struct drm_intel_decode *ctx, unsigned int index,
 	  const char *fmt, ...)
 {
@@ -257,6 +259,8 @@ decode_mi(struct drm_intel_decode *ctx)
 		{ 0x03, 0, 1, 1, "MI_WAIT_FOR_EVENT", decode_MI_WAIT_FOR_EVENT },
 		{ 0x16, 0x7f, 3, 3, "MI_SEMAPHORE_MBOX" },
 		{ 0x26, 0x1f, 3, 4, "MI_FLUSH_DW" },
+		{ 0x28, 0x3f, 3, 3, "MI_REPORT_PERF_COUNT" },
+		{ 0x29, 0xff, 3, 3, "MI_LOAD_REGISTER_MEM" },
 		{ 0x0b, 0, 1, 1, "MI_SUSPEND_FLUSH"},
 	}, *opcode_mi = NULL;
 
@@ -3162,7 +3166,7 @@ decode_3d_965(struct drm_intel_decode *ctx)
 		{ 0x7805, 0x00ff, 3, 3, "3DSTATE_URB" },
 		{ 0x7804, 0x00ff, 3, 3, "3DSTATE_CLEAR_PARAMS" },
 		{ 0x7806, 0x00ff, 3, 3, "3DSTATE_STENCIL_BUFFER" },
-		{ 0x7807, 0x00ff, 4, 4, "3DSTATE_HIER_DEPTH_BUFFER", 6 },
+		{ 0x790f, 0x00ff, 3, 3, "3DSTATE_HIER_DEPTH_BUFFER", 6 },
 		{ 0x7807, 0x00ff, 3, 3, "3DSTATE_HIER_DEPTH_BUFFER", 7, gen7_3DSTATE_HIER_DEPTH_BUFFER },
 		{ 0x7808, 0x00ff, 5, 257, "3DSTATE_VERTEX_BUFFERS" },
 		{ 0x7809, 0x00ff, 3, 256, "3DSTATE_VERTEX_ELEMENTS" },
@@ -3813,7 +3817,7 @@ decode_3d_i830(struct drm_intel_decode *ctx)
 	return 1;
 }
 
-struct drm_intel_decode *
+drm_public struct drm_intel_decode *
 drm_intel_decode_context_alloc(uint32_t devid)
 {
 	struct drm_intel_decode *ctx;
@@ -3825,7 +3829,9 @@ drm_intel_decode_context_alloc(uint32_t devid)
 	ctx->devid = devid;
 	ctx->out = stdout;
 
-	if (IS_GEN7(devid))
+	if (IS_GEN8(devid))
+		ctx->gen = 8;
+	else if (IS_GEN7(devid))
 		ctx->gen = 7;
 	else if (IS_GEN6(devid))
 		ctx->gen = 6;
@@ -3843,20 +3849,20 @@ drm_intel_decode_context_alloc(uint32_t devid)
 	return ctx;
 }
 
-void
+drm_public void
 drm_intel_decode_context_free(struct drm_intel_decode *ctx)
 {
 	free(ctx);
 }
 
-void
+drm_public void
 drm_intel_decode_set_dump_past_end(struct drm_intel_decode *ctx,
 				   int dump_past_end)
 {
 	ctx->dump_past_end = !!dump_past_end;
 }
 
-void
+drm_public void
 drm_intel_decode_set_batch_pointer(struct drm_intel_decode *ctx,
 				   void *data, uint32_t hw_offset, int count)
 {
@@ -3865,7 +3871,7 @@ drm_intel_decode_set_batch_pointer(struct drm_intel_decode *ctx,
 	ctx->base_count = count;
 }
 
-void
+drm_public void
 drm_intel_decode_set_head_tail(struct drm_intel_decode *ctx,
 			       uint32_t head, uint32_t tail)
 {
@@ -3873,7 +3879,7 @@ drm_intel_decode_set_head_tail(struct drm_intel_decode *ctx,
 	ctx->tail = tail;
 }
 
-void
+drm_public void
 drm_intel_decode_set_output_file(struct drm_intel_decode *ctx,
 				 FILE *out)
 {
@@ -3887,7 +3893,7 @@ drm_intel_decode_set_output_file(struct drm_intel_decode *ctx,
  * \param count number of DWORDs to decode in the batch buffer
  * \param hw_offset hardware address for the buffer
  */
-void
+drm_public void
 drm_intel_decode(struct drm_intel_decode *ctx)
 {
 	int ret;

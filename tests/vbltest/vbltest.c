@@ -37,7 +37,9 @@
  * TODO: use cairo to write the mode info on the selected output once
  *       the mode has been programmed, along with possible test patterns.
  */
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -103,7 +105,7 @@ static void usage(char *name)
 int main(int argc, char **argv)
 {
 	int i, c, fd, ret;
-	char *modules[] = { "i915", "radeon", "nouveau", "vmwgfx", "exynos" };
+	char *modules[] = { "i915", "radeon", "nouveau", "vmwgfx", "exynos", "omapdrm", "tilcdc", "msm" };
 	drmVBlank vbl;
 	drmEventContext evctx;
 	struct vbl_info handler_info;

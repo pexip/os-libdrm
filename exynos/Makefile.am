@@ -1,5 +1,6 @@
 AM_CFLAGS = \
 	$(WARN_CFLAGS) \
+	$(VISIBILITY_CFLAGS) \
 	-I$(top_srcdir) \
 	-I$(top_srcdir)/exynos \
 	$(PTHREADSTUBS_CFLAGS) \
@@ -10,7 +11,11 @@ libdrm_exynos_ladir = $(libdir)
 libdrm_exynos_la_LDFLAGS = -version-number 1:0:0 -no-undefined
 libdrm_exynos_la_LIBADD = ../libdrm.la @PTHREADSTUBS_LIBS@
 
-libdrm_exynos_la_SOURCES = exynos_drm.c exynos_fimg2d.c
+libdrm_exynos_la_SOURCES = \
+	exynos_drm.c \
+	exynos_fimg2d.c \
+	fimg2d.h \
+	fimg2d_reg.h
 
 libdrm_exynoscommonincludedir = ${includedir}/exynos
 libdrm_exynoscommoninclude_HEADERS = exynos_drm.h

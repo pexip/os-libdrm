@@ -41,6 +41,10 @@
 #include <sys/ioctl.h>
 #include <stdio.h>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "xf86drmMode.h"
 #include "xf86drm.h"
 #include <drm.h>
@@ -48,6 +52,16 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
+
+#ifdef HAVE_VALGRIND
+#include <valgrind.h>
+#include <memcheck.h>
+#define VG(x) x
+#else
+#define VG(x)
+#endif
+
+#define VG_CLEAR(s) VG(memset(&s, 0, sizeof(s)))
 
 #define U642VOID(x) ((void *)(unsigned long)(x))
 #define VOID2U64(x) ((uint64_t)(unsigned long)(x))
@@ -245,6 +259,7 @@ int drmModeAddFB(int fd, uint32_t width, uint32_t height, uint8_t depth,
 	struct drm_mode_fb_cmd f;
 	int ret;
 
+	VG_CLEAR(f);
 	f.width  = width;
 	f.height = height;
 	f.pitch  = pitch;
@@ -335,6 +350,7 @@ drmModeCrtcPtr drmModeGetCrtc(int fd, uint32_t crtcId)
 	struct drm_mode_crtc crtc;
 	drmModeCrtcPtr r;
 
+	VG_CLEAR(crtc);
 	crtc.crtc_id = crtcId;
 
 	if (drmIoctl(fd, DRM_IOCTL_MODE_GETCRTC, &crtc))
@@ -368,6 +384,7 @@ int drmModeSetCrtc(int fd, uint32_t crtcId, uint32_t bufferId,
 {
 	struct drm_mode_crtc crtc;
 
+	VG_CLEAR(crtc);
 	crtc.x             = x;
 	crtc.y             = y;
 	crtc.crtc_id       = crtcId;
@@ -400,6 +417,21 @@ int drmModeSetCursor(int fd, uint32_t crtcId, uint32_t bo_handle, uint32_t width
 	return DRM_IOCTL(fd, DRM_IOCTL_MODE_CURSOR, &arg);
 }
 
+int drmModeSetCursor2(int fd, uint32_t crtcId, uint32_t bo_handle, uint32_t width, uint32_t height, int32_t hot_x, int32_t hot_y)
+{
+	struct drm_mode_cursor2 arg;
+
+	arg.flags = DRM_MODE_CURSOR_BO;
+	arg.crtc_id = crtcId;
+	arg.width = width;
+	arg.height = height;
+	arg.handle = bo_handle;
+	arg.hot_x = hot_x;
+	arg.hot_y = hot_y;
+
+	return DRM_IOCTL(fd, DRM_IOCTL_MODE_CURSOR2, &arg);
+}
+
 int drmModeMoveCursor(int fd, uint32_t crtcId, int x, int y)
 {
 	struct drm_mode_cursor arg;
@@ -421,6 +453,7 @@ drmModeEncoderPtr drmModeGetEncoder(int fd, uint32_t encoder_id)
 	drmModeEncoderPtr r = NULL;
 
 	enc.encoder_id = encoder_id;
+	enc.crtc_id = 0;
 	enc.encoder_type = 0;
 	enc.possible_crtcs = 0;
 	enc.possible_clones = 0;
@@ -565,6 +598,7 @@ drmModePropertyPtr drmModeGetProperty(int fd, uint32_t property_id)
 	struct drm_mode_get_property prop;
 	drmModePropertyPtr r;
 
+	VG_CLEAR(prop);
 	prop.prop_id = property_id;
 	prop.count_enum_blobs = 0;
 	prop.count_values = 0;
@@ -689,7 +723,7 @@ int drmModeConnectorSetProperty(int fd, uint32_t connector_id, uint32_t property
 */
 int drmCheckModesettingSupported(const char *busid)
 {
-#ifdef __linux__
+#if defined (__linux__)
 	char pci_dev_dir[1024];
 	int domain, bus, dev, func;
 	DIR *sysdir;
@@ -739,6 +773,41 @@ int drmCheckModesettingSupported(const char *busid)
 	closedir(sysdir);
 	if (found)
 		return 0;
+#elif defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
+	char kbusid[1024], sbusid[1024];
+	char oid[128];
+	int domain, bus, dev, func;
+	int i, modesetting, ret;
+	size_t len;
+
+	ret = sscanf(busid, "pci:%04x:%02x:%02x.%d", &domain, &bus, &dev,
+	    &func);
+	if (ret != 4)
+		return -EINVAL;
+	snprintf(kbusid, sizeof(kbusid), "pci:%04x:%02x:%02x.%d", domain, bus,
+	    dev, func);
+
+	/* How many GPUs do we expect in the machine ? */
+	for (i = 0; i < 16; i++) {
+		snprintf(oid, sizeof(oid), "hw.dri.%d.busid", i);
+		len = sizeof(sbusid);
+		ret = sysctlbyname(oid, sbusid, &len, NULL, 0);
+		if (ret == -1) {
+			if (errno == ENOENT)
+				continue;
+			return -EINVAL;
+		}
+		if (strcmp(sbusid, kbusid) != 0)
+			continue;
+		snprintf(oid, sizeof(oid), "hw.dri.%d.modesetting", i);
+		len = sizeof(modesetting);
+		ret = sysctlbyname(oid, &modesetting, &len, NULL, 0);
+		if (ret == -1 || len != sizeof(modesetting))
+			return -EINVAL;
+		return (modesetting ? 0 : -ENOSYS);
+	}
+#elif defined(__DragonFly__)
+	return 0;
 #endif
 	return -ENOSYS;
 
@@ -839,7 +908,7 @@ int drmModePageFlip(int fd, uint32_t crtc_id, uint32_t fb_id,
 
 int drmModeSetPlane(int fd, uint32_t plane_id, uint32_t crtc_id,
 		    uint32_t fb_id, uint32_t flags,
-		    uint32_t crtc_x, uint32_t crtc_y,
+		    int32_t crtc_x, int32_t crtc_y,
 		    uint32_t crtc_w, uint32_t crtc_h,
 		    uint32_t src_x, uint32_t src_y,
 		    uint32_t src_w, uint32_t src_h)
