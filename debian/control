@@ -20,7 +20,7 @@ Standards-Version: 3.9.4
 Section: libs
 Vcs-Git: git://git.debian.org/git/pkg-xorg/lib/libdrm
 Vcs-Browser: http://git.debian.org/?p=pkg-xorg/lib/libdrm.git
-XS-Pexip-Upstream: http://archive.ubuntu.com/ubuntu/ precise
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ jessie
 
 Package: libdrm-dev
 Section: libdevel
