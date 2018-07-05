@@ -96,6 +96,7 @@ struct drm_nouveau_setparam {
 #define NOUVEAU_GEM_DOMAIN_VRAM      (1 << 1)
 #define NOUVEAU_GEM_DOMAIN_GART      (1 << 2)
 #define NOUVEAU_GEM_DOMAIN_MAPPABLE  (1 << 3)
+#define NOUVEAU_GEM_DOMAIN_COHERENT  (1 << 4)
 
 #define NOUVEAU_GEM_TILE_LAYOUT_MASK 0x0000ff00
 #define NOUVEAU_GEM_TILE_16BPP       0x00000001
@@ -199,6 +200,7 @@ struct drm_nouveau_sarea {
 #define DRM_NOUVEAU_GROBJ_ALLOC        0x04
 #define DRM_NOUVEAU_NOTIFIEROBJ_ALLOC  0x05
 #define DRM_NOUVEAU_GPUOBJ_FREE        0x06
+#define DRM_NOUVEAU_NVIF               0x07
 #define DRM_NOUVEAU_GEM_NEW            0x40
 #define DRM_NOUVEAU_GEM_PUSHBUF        0x41
 #define DRM_NOUVEAU_GEM_CPU_PREP       0x42

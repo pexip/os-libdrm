@@ -38,6 +38,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 struct drm_clip_rect;
 
 typedef struct _drm_intel_bufmgr drm_intel_bufmgr;
@@ -160,6 +164,8 @@ int drm_intel_bo_get_tiling(drm_intel_bo *bo, uint32_t * tiling_mode,
 int drm_intel_bo_flink(drm_intel_bo *bo, uint32_t * name);
 int drm_intel_bo_busy(drm_intel_bo *bo);
 int drm_intel_bo_madvise(drm_intel_bo *bo, int madv);
+int drm_intel_bo_use_48b_address_range(drm_intel_bo *bo, uint32_t enable);
+int drm_intel_bo_set_softpin_offset(drm_intel_bo *bo, uint64_t offset);
 
 int drm_intel_bo_disable_reuse(drm_intel_bo *bo);
 int drm_intel_bo_is_reusable(drm_intel_bo *bo);
@@ -177,6 +183,10 @@ void drm_intel_bufmgr_gem_set_vma_cache_size(drm_intel_bufmgr *bufmgr,
 int drm_intel_gem_bo_map_unsynchronized(drm_intel_bo *bo);
 int drm_intel_gem_bo_map_gtt(drm_intel_bo *bo);
 int drm_intel_gem_bo_unmap_gtt(drm_intel_bo *bo);
+
+void *drm_intel_gem_bo_map__cpu(drm_intel_bo *bo);
+void *drm_intel_gem_bo_map__gtt(drm_intel_bo *bo);
+void *drm_intel_gem_bo_map__wc(drm_intel_bo *bo);
 
 int drm_intel_gem_bo_get_reloc_count(drm_intel_bo *bo);
 void drm_intel_gem_bo_clear_relocs(drm_intel_bo *bo, int start);
@@ -202,6 +212,8 @@ int drm_intel_bufmgr_gem_get_devid(drm_intel_bufmgr *bufmgr);
 int drm_intel_gem_bo_wait(drm_intel_bo *bo, int64_t timeout_ns);
 
 drm_intel_context *drm_intel_gem_context_create(drm_intel_bufmgr *bufmgr);
+int drm_intel_gem_context_get_id(drm_intel_context *ctx,
+                                 uint32_t *ctx_id);
 void drm_intel_gem_context_destroy(drm_intel_context *ctx);
 int drm_intel_gem_bo_context_exec(drm_intel_bo *bo, drm_intel_context *ctx,
 				  int used, unsigned int flags);
@@ -264,6 +276,12 @@ int drm_intel_get_reset_stats(drm_intel_context *ctx,
 			      uint32_t *active,
 			      uint32_t *pending);
 
+int drm_intel_get_subslice_total(int fd, unsigned int *subslice_total);
+int drm_intel_get_eu_total(int fd, unsigned int *eu_total);
+
+int drm_intel_get_pooled_eu(int fd);
+int drm_intel_get_min_eu_in_pool(int fd);
+
 /** @{ Compatibility defines to keep old code building despite the symbol rename
  * from dri_* to drm_intel_*
  */
@@ -304,5 +322,9 @@ int drm_intel_get_reset_stats(drm_intel_context *ctx,
 #define intel_bufmgr_fake_evict_all drm_intel_bufmgr_fake_evict_all
 
 /** @{ */
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* INTEL_BUFMGR_H */
