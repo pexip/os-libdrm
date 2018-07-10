@@ -1,3 +1,9 @@
+libdrm (2.4.74-1pexip1) pexip; urgency=medium
+
+  * Migrate to Stretch
+
+ -- John-Mark Bell <jmb@pexip.com>  Tue, 10 Jul 2018 11:14:04 +0000
+
 libdrm (2.4.74-1) unstable; urgency=medium
 
   * New upstream release.
