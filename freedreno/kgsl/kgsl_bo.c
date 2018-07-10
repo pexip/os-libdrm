@@ -116,6 +116,11 @@ static void kgsl_bo_cpu_fini(struct fd_bo *bo)
 {
 }
 
+static int kgsl_bo_madvise(struct fd_bo *bo, int willneed)
+{
+	return willneed; /* not supported by kgsl */
+}
+
 static void kgsl_bo_destroy(struct fd_bo *bo)
 {
 	struct kgsl_bo *kgsl_bo = to_kgsl_bo(bo);
@@ -123,15 +128,16 @@ static void kgsl_bo_destroy(struct fd_bo *bo)
 
 }
 
-static struct fd_bo_funcs funcs = {
+static const struct fd_bo_funcs funcs = {
 		.offset = kgsl_bo_offset,
 		.cpu_prep = kgsl_bo_cpu_prep,
 		.cpu_fini = kgsl_bo_cpu_fini,
+		.madvise = kgsl_bo_madvise,
 		.destroy = kgsl_bo_destroy,
 };
 
 /* allocate a buffer handle: */
-int kgsl_bo_new_handle(struct fd_device *dev,
+drm_private int kgsl_bo_new_handle(struct fd_device *dev,
 		uint32_t size, uint32_t flags, uint32_t *handle)
 {
 	struct drm_kgsl_gem_create req = {
@@ -155,7 +161,7 @@ int kgsl_bo_new_handle(struct fd_device *dev,
 }
 
 /* allocate a new buffer object */
-struct fd_bo * kgsl_bo_from_handle(struct fd_device *dev,
+drm_private struct fd_bo * kgsl_bo_from_handle(struct fd_device *dev,
 		uint32_t size, uint32_t handle)
 {
 	struct kgsl_bo *kgsl_bo;
@@ -175,7 +181,7 @@ struct fd_bo * kgsl_bo_from_handle(struct fd_device *dev,
 	return bo;
 }
 
-drm_public struct fd_bo *
+struct fd_bo *
 fd_bo_from_fbdev(struct fd_pipe *pipe, int fbfd, uint32_t size)
 {
 	struct fd_bo *bo;
@@ -218,7 +224,7 @@ fail:
 	return NULL;
 }
 
-uint32_t kgsl_bo_gpuaddr(struct kgsl_bo *kgsl_bo, uint32_t offset)
+drm_private uint32_t kgsl_bo_gpuaddr(struct kgsl_bo *kgsl_bo, uint32_t offset)
 {
 	struct fd_bo *bo = &kgsl_bo->base;
 	if (!kgsl_bo->gpuaddr) {
@@ -267,7 +273,8 @@ uint32_t kgsl_bo_gpuaddr(struct kgsl_bo *kgsl_bo, uint32_t offset)
  * _emit_reloc()..
  */
 
-void kgsl_bo_set_timestamp(struct kgsl_bo *kgsl_bo, uint32_t timestamp)
+drm_private void kgsl_bo_set_timestamp(struct kgsl_bo *kgsl_bo,
+		uint32_t timestamp)
 {
 	struct fd_bo *bo = &kgsl_bo->base;
 	if (bo->name) {
@@ -285,7 +292,7 @@ void kgsl_bo_set_timestamp(struct kgsl_bo *kgsl_bo, uint32_t timestamp)
 	}
 }
 
-uint32_t kgsl_bo_get_timestamp(struct kgsl_bo *kgsl_bo)
+drm_private uint32_t kgsl_bo_get_timestamp(struct kgsl_bo *kgsl_bo)
 {
 	struct fd_bo *bo = &kgsl_bo->base;
 	uint32_t timestamp = 0;

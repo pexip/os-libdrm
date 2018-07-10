@@ -34,14 +34,16 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 
+#include "util/common.h"
+
 #include "buffers.h"
 #include "cursor.h"
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct cursor {
 	int fd;
@@ -59,13 +61,16 @@ struct cursor {
 static struct cursor cursors[MAX_CURSORS];
 static int ncursors;
 
+static pthread_t cursor_thread;
+static int cursor_running;
+
 /*
  * Timer driven program loops through these steps to move/enable/disable
  * the cursor
  */
 
 struct cursor_step {
-	void (*run)(struct cursor *cursor, struct cursor_step *step);
+	void (*run)(struct cursor *cursor, const struct cursor_step *step);
 	uint32_t msec;
 	uint32_t repeat;
 	int arg;
@@ -73,7 +78,7 @@ struct cursor_step {
 
 static uint32_t indx, count;
 
-static void set_cursor(struct cursor *cursor, struct cursor_step *step)
+static void set_cursor(struct cursor *cursor, const struct cursor_step *step)
 {
 	int enabled = (step->arg ^ count) & 0x1;
 	uint32_t handle = 0;
@@ -86,7 +91,7 @@ static void set_cursor(struct cursor *cursor, struct cursor_step *step)
 	drmModeSetCursor(cursor->fd, cursor->crtc_id, handle, cursor->w, cursor->h);
 }
 
-static void move_cursor(struct cursor *cursor, struct cursor_step *step)
+static void move_cursor(struct cursor *cursor, const struct cursor_step *step)
 {
 	int x = cursor->x;
 	int y = cursor->y;
@@ -121,7 +126,7 @@ static void move_cursor(struct cursor *cursor, struct cursor_step *step)
 	drmModeMoveCursor(cursor->fd, cursor->crtc_id, x, y);
 }
 
-static struct cursor_step steps[] = {
+static const struct cursor_step steps[] = {
 		{  set_cursor, 10,   0,  1 },  /* enable */
 		{ move_cursor,  1, 100,  1 },
 		{ move_cursor,  1,  10, 10 },
@@ -137,33 +142,29 @@ static struct cursor_step steps[] = {
 		{  set_cursor, 10,   0,  0 },  /* disable */
 };
 
-/*
- * Cursor API:
- */
-
-static void run_step(int sig)
+static void *cursor_thread_func(void *data)
 {
-	struct cursor_step *step = &steps[indx % ARRAY_SIZE(steps)];
-	struct itimerval itimer = {
-			.it_value.tv_usec = 1000 * step->msec,
-	};
-	int i;
+	while (cursor_running) {
+		const struct cursor_step *step = &steps[indx % ARRAY_SIZE(steps)];
+		int i;
 
-	for (i = 0; i < ncursors; i++) {
-		struct cursor *cursor = &cursors[i];
-		step->run(cursor, step);
+		for (i = 0; i < ncursors; i++) {
+			struct cursor *cursor = &cursors[i];
+			step->run(cursor, step);
+		}
+
+		/* iterate to next count/step: */
+		if (count < step->repeat) {
+			count++;
+		} else {
+			count = 0;
+			indx++;
+		}
+
+		usleep(1000 * step->msec);
 	}
 
-	/* iterate to next count/step: */
-	if (count < step->repeat) {
-		count++;
-	} else {
-		count = 0;
-		indx++;
-	}
-
-	/* and lastly, setup timer for next step */
-	setitimer(ITIMER_REAL, &itimer, NULL);
+	return NULL;
 }
 
 int cursor_init(int fd, uint32_t bo_handle, uint32_t crtc_id,
@@ -194,16 +195,16 @@ int cursor_init(int fd, uint32_t bo_handle, uint32_t crtc_id,
 
 int cursor_start(void)
 {
-	/* setup signal handler to update cursor: */
-	signal(SIGALRM, run_step);
+	cursor_running = 1;
+	pthread_create(&cursor_thread, NULL, cursor_thread_func, NULL);
 	printf("starting cursor\n");
-	run_step(SIGALRM);
 	return 0;
 }
 
 int cursor_stop(void)
 {
-	signal(SIGALRM, NULL);
+	cursor_running = 0;
+	pthread_join(cursor_thread, NULL);
 	printf("cursor stopped\n");
 	return 0;
 }

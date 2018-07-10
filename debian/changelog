@@ -1,3 +1,190 @@
+libdrm (2.4.74-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update debian/upstream/signing-key.asc.
+  * Bump libdrm2's, libdrm-freedreno1's and libdrm-intel1's symbols and
+    shlibs.
+  * Bump debhelper compat to 10.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Tue, 29 Nov 2016 19:01:04 +0100
+
+libdrm (2.4.73-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump libdrm2's, libdrm-amdgpu1's, libdrm-freedreno1's and libdrm-
+    intel1's symbols and shlibs.
+  * Update a bunch of URLs in packaging to https.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Tue, 15 Nov 2016 15:43:02 +0100
+
+libdrm (2.4.71-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update symbols file and bump shlibs for libdrm2.
+  * Update libdrm-intel1.symbols and shlibs.
+  * Remove Hurd from the architecture list. It FTBFS, haven't built in
+    the past and won't be useful without the equivalent of the Linux
+    Direct Rendering Manager (DRM) subsystem.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Thu, 06 Oct 2016 10:31:27 +0200
+
+libdrm (2.4.70-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update libdrm-freedreno1.symbols and shlibs.
+  * source/local-options: Add more files to extend-diff-ignore option.
+    Fixes 17 patch-system-but-direct-changes-in-diff lintian warnings.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Mon, 25 Jul 2016 12:32:20 +0200
+
+libdrm (2.4.69-1) unstable; urgency=medium
+
+  [ Andreas Boll ]
+  * New upstream release.
+  * Update debian/upstream/signing-key.asc.
+  * Bump Standards-Version to 3.9.8, no changes needed.
+  * Update watch url to use https instead of http.
+
+  [ Julien Cristau ]
+  * Build libdrm-tegra on arm64 (closes: #828023).  Thanks, Martin Michlmayr!
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Thu, 21 Jul 2016 10:25:17 +0200
+
+libdrm (2.4.68-1) unstable; urgency=medium
+
+  * New upstream release. (LP: #1577735)
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 03 May 2016 14:30:06 +0300
+
+libdrm (2.4.67-1) unstable; urgency=medium
+
+  * New upstream release.
+  * patches: Refreshed.
+  * libdrm-amdgpu1.symbols: Updated.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 16 Feb 2016 12:14:16 +0200
+
+libdrm (2.4.66-2) unstable; urgency=medium
+
+  * Update libdrm-exynos1.symbols and shlibs.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Fri, 15 Jan 2016 12:08:05 +0100
+
+libdrm (2.4.66-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update symbols file and bump shlibs for libdrm2.
+  * Update libdrm-intel1.symbols and shlibs.
+  * Update libdrm-nouveau2.symbols and shlibs.
+  * Drop obsolete Replaces from pre-wheezy.
+  * Add myself to Uploaders.
+
+ -- Andreas Boll <andreas.boll.dev@gmail.com>  Fri, 15 Jan 2016 10:41:05 +0100
+
+libdrm (2.4.65-3) unstable; urgency=medium
+
+  * rules: Bump freedreno shlib back to 2.4.65.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Mon, 26 Oct 2015 23:15:56 +0200
+
+libdrm (2.4.65-2) unstable; urgency=medium
+
+  [ Andreas Boll ]
+  * Update libdrm-freedreno1.symbols and shlibs.
+  * Drop Debian revision from new symbols in libdrm2.symbols.
+
+  [ Fathi Boudra ]
+  * Enable freedreno build on arm64 architecture.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Mon, 26 Oct 2015 21:40:43 +0200
+
+libdrm (2.4.65-1) unstable; urgency=medium
+
+  [ Andreas Boll ]
+  * New upstream release.
+  * Update debian/upstream/signing-key.asc.
+  * Update symbols file and bump shlibs for libdrm2.
+  * Enable libdrm-amdgpu1 on kfreebsd-*.
+  * Fix Vcs-* fields.
+  * Add upstream url.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Mon, 26 Oct 2015 10:22:57 +0200
+
+libdrm (2.4.64-1) unstable; urgency=medium
+
+  [ Robert Hooker ]
+  * New upstream release.
+  * Bump symbols file and shlibs for libdrm-freedreno1.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 19 Aug 2015 07:52:50 +0300
+
+libdrm (2.4.63-1) unstable; urgency=medium
+
+  [ Robert Hooker ]
+  * New upstream release.
+    - Drop Fix-headers-inclusion-in-xf86drmMode.c.diff, upstream.
+  * Add new libdrm-amdgpu1 package.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Sat, 15 Aug 2015 18:55:57 +0300
+
+libdrm (2.4.62-1) unstable; urgency=medium
+
+  [ Sven Joachim ]
+  * New upstream release.
+    - nouveau: restore check that avoids multiple user bos per kernel bo
+      (Closes: #789759).
+  * Update symbols file and bump shlibs for libdrm2.
+  * Refresh the patch from 2.4.60-3 after upstream changes.
+  * Remove duplicate Section fields from debian/control.
+  * Update debian/upstream/signing-key.asc.
+  * Bump Standards-Version to 3.9.6, no changes needed.
+
+  [ Julien Cristau ]
+  * Update debian/upstream/signing-key.asc.
+  * Fix kfreebsd patch that caused an FTBFS on Linux/x32: only include
+    <sys/sysctl.h> if configure detects it (closes: #787496).  Thanks,
+    Thorsten Glaser.
+  * Add build-dep on xutils-dev for xorg-macros.
+  * Cherry-pick upstream patch to let valgrind auto-detection work.
+
+ -- Julien Cristau <jcristau@debian.org>  Thu, 02 Jul 2015 21:11:21 +0200
+
+libdrm (2.4.60-3) unstable; urgency=medium
+
+  [ Timo Aaltonen ]
+  * control: Add a typo in libdrm-tegra0 description.
+
+  [ Julien Cristau ]
+  * Fix FTBFS on kfreebsd: include <sys/sysctl.h> for sysctlbyname, and use
+    -lbsd to make the tests build (they use getopt, and our libbsd-overlay
+    cflags redirect that to bsd_getopt).
+  * Bump shlibs for libraries with new symbols.
+  * Add missing dependency of libdrm-dev on libdrm-tegra0 on arm*.
+  * Let uscan verify tarball signatures.
+
+ -- Julien Cristau <jcristau@debian.org>  Sun, 26 Apr 2015 12:21:30 +0200
+
+libdrm (2.4.60-2) experimental; urgency=medium
+
+  [ Maarten Lankhorst ]
+  * Fix ftbfs on armhf.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 08 Apr 2015 09:21:00 +0300
+
+libdrm (2.4.60-1) experimental; urgency=medium
+
+  * New upstream release.
+  * libdrm-intel1.symbols, libdrm2.symbols: Updated.
+
+ -- Timo Aaltonen <tjaalton@debian.org>  Fri, 20 Mar 2015 09:07:11 +0200
+
+libdrm (2.4.59-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Add libdrm-tegra0 on arm.
+
+ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Wed, 21 Jan 2015 13:24:22 +0100
+
 libdrm (2.4.58-2pexip1) pexip; urgency=low
 
   * Migrate to Jessie
